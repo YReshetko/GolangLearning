@@ -19,7 +19,15 @@ func main() {
 }
 func interfPack() {
 	//interf.Experiment1()
-	interf.Experiment2()
+	//interf.Experiment2()
+	//interf.Experiment3()
+	//interf.Experiment4()
+	//interf.Experiment5()
+	//interf.Experiment6()
+	//interf.Experiment7()
+	//interf.Experiment8()
+	//interf.Experiment9()
+	interf.Task()
 }
 func methodsPack() {
 	//methods.Experiment1()
@@ -35,14 +43,14 @@ func functionPack() {
 }
 
 func dictionaryPack() {
-	dictionary.Experiment1()
-	dictionary.Experiment2()
-	dictionary.Experiment3()
-	dictionary.Experiment4()
+	//dictionary.Experiment1()
+	//dictionary.Experiment2()
+	//dictionary.Experiment3()
+	//dictionary.Experiment4()
 	dictionary.Task()
 }
 func arrayPack() {
-	array.Experiment1()
+	//array.Experiment1()
 	array.Experiment2()
 }
 func helloPack() {
