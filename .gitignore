@@ -1,0 +1,8 @@
+.vscode/
+bin/
+pkg/
+strange/
+src/github.com/
+src/golang.org/
+**/debug
+**/*.exe
