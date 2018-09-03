@@ -3,10 +3,13 @@ package main
 import (
 	"array"
 	"dictionary"
+	"error"
 	"functions"
 	"hello"
+	"img"
 	"interf"
 	"methods"
+	"reader"
 )
 
 func main() {
@@ -15,7 +18,23 @@ func main() {
 	//dictionaryPack()
 	//functionPack()
 	//methodsPack()
-	interfPack()
+	//interfPack()
+	//errorPack()
+	//readerPack()
+	readerImage()
+}
+func readerImage() {
+	//img.Experiment1()
+	img.Task()
+}
+func readerPack() {
+	//reader.Experiment1()
+	//reader.Task()
+	reader.Task2()
+}
+func errorPack() {
+	//error.Experiment1()
+	error.Task()
 }
 func interfPack() {
 	//interf.Experiment1()

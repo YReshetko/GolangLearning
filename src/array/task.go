@@ -7,7 +7,7 @@ func Pic(dx, dy int) [][]uint8 {
 	for i := range toReturn {
 		slice := make([]uint8, dx)
 		for j := range slice {
-			slice[j] = uint8(i*2 + j*3)
+			slice[j] = uint8(i + j)
 		}
 		toReturn[i] = slice
 	}
