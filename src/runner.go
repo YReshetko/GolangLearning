@@ -5,11 +5,13 @@ import (
 	"dictionary"
 	"error"
 	"functions"
+	"gorutin"
 	"hello"
 	"img"
 	"interf"
 	"methods"
 	"reader"
+	"synchronization"
 )
 
 func main() {
@@ -21,7 +23,23 @@ func main() {
 	//interfPack()
 	//errorPack()
 	//readerPack()
-	readerImage()
+	//readerImage()
+	//gorutPack()
+	synchPack()
+}
+func synchPack() {
+	//synchronization.Experiment1()
+	synchronization.Task()
+}
+
+func gorutPack() {
+	//gorutin.Experiment1()
+	//gorutin.Experiment2()
+	//gorutin.Experiment3()
+	//gorutin.Experiment4()
+	//gorutin.Experiment5()
+	//gorutin.Experiment6()
+	gorutin.Task()
 }
 func readerImage() {
 	//img.Experiment1()

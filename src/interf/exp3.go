@@ -24,7 +24,7 @@ func (fl MyFloat1) method() {
 
 /*
 Experiment3 - The value of interface is a pair (value, type) where:
-- value is a alue of paticular type
+- value is a value of paticular type
 - type is real type of value (structure, alias to type etc.)
 */
 func Experiment3() {
