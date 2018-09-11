@@ -1,8 +1,10 @@
 package fetch
 
 import (
+	"fmt"
 	"log"
 	"mailclient/config"
+	"strconv"
 
 	"github.com/emersion/go-imap/client"
 )
@@ -26,7 +28,9 @@ func (cli *imapClient) Init(config config.Configuration) {
 	cli.config = config
 }
 func (cli *imapClient) Login() error {
-	c, err := client.DialTLS(cli.config.ImapHost+":"+string(cli.config.ImapPort), nil)
+	server := cli.config.ImapHost + ":" + strconv.Itoa(cli.config.ImapPort)
+	fmt.Printf("Server: %s", server)
+	c, err := client.DialTLS(server, nil)
 	cli.client = c
 	if err != nil {
 		log.Fatal(err)
