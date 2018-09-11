@@ -13,13 +13,13 @@ type Fetcher interface {
 }
 
 type safeMap struct {
-	m   map[string]bool
-	mut sync.Mutex
+	sync.Mutex
+	m map[string]bool
 }
 
 func (m *safeMap) putIfAbsent(s string) bool {
-	m.mut.Lock()
-	defer m.mut.Unlock()
+	m.Lock()
+	defer m.Unlock()
 	_, ok := m.m[s]
 	if ok {
 		return false

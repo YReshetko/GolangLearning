@@ -1,17 +1,17 @@
 package main
 
 import (
-	"array"
-	"dictionary"
-	"error"
-	"functions"
-	"gorutin"
-	"hello"
-	"img"
-	"interf"
-	"methods"
-	"reader"
-	"synchronization"
+	"learning/array"
+	"learning/dictionary"
+	"learning/error"
+	"learning/functions"
+	"learning/gorutin"
+	"learning/hello"
+	"learning/img"
+	"learning/interf"
+	"learning/methods"
+	"learning/reader"
+	"learning/synchronization"
 )
 
 func main() {
