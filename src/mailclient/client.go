@@ -2,9 +2,14 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"io/ioutil"
 	"mailclient/config"
 	"mailclient/fetch"
 	"os"
+
+	imap "github.com/emersion/go-imap"
+	"github.com/emersion/go-message/mail"
 )
 
 func main() {
@@ -25,8 +30,67 @@ func main() {
 	for info := range boxinfos {
 		fmt.Println(info)
 	}
+	iterateByEmails(client)
 
-	messages, err := client.Select("INBOX", 1, 2)
+}
+
+func iterateByEmails(client fetch.ImapClient) {
+	iterator, err := client.MailIterator("INBOX")
+	if err != nil {
+		fmt.Println("Cant retrieve mail iterator:", err)
+		os.Exit(1)
+	}
+	for ; ; iterator.HasNext() {
+		msgChan, err := iterator.Next()
+		if err != nil {
+			fmt.Println("Cant retrieve an mail:", err)
+			os.Exit(1)
+		}
+		msg := <-msgChan
+		fmt.Println("----------------------------------")
+		//fmt.Println("Mail ID:", msg.Envelope.MessageId)
+		//fmt.Println("Mail subject:", msg.Envelope.Subject)
+		fmt.Println("Mail body:", msg.Body)
+
+		section := &imap.BodySectionName{}
+		r := msg.GetBody(section)
+		if r == nil {
+			fmt.Println("Server didn't returned message body")
+			continue
+		}
+
+		// Create a new mail reader
+		mr, err := mail.CreateReader(r)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+
+		// Process each message's part
+		for {
+			p, err := mr.NextPart()
+			if err == io.EOF {
+				break
+			} else if err != nil {
+				fmt.Println(err)
+			}
+
+			switch h := p.Header.(type) {
+			case mail.TextHeader:
+				// This is the message's text (can be plain-text or HTML)
+				b, _ := ioutil.ReadAll(p.Body)
+				fmt.Println("Got text: %v", string(b))
+			case mail.AttachmentHeader:
+				// This is an attachment
+				filename, _ := h.Filename()
+				fmt.Println("Got attachment: %v", filename)
+			}
+		}
+	}
+}
+
+func getMessagestFrom(client fetch.ImapClient) {
+	messages, err := client.Select("INBOX", 1, 1)
 	if err != nil {
 		fmt.Println("Loading emails error:", err)
 		os.Exit(1)
