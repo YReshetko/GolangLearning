@@ -30,8 +30,32 @@ func main() {
 	for info := range boxinfos {
 		fmt.Println(info)
 	}
-	iterateByEmails(client)
+	//iterateByEmails(client)
+	getMessagestByChannel(client)
 
+}
+
+func getMessagestByChannel(client fetch.ImapClient) {
+	done := make(chan bool, 2)
+	messagesChannel, err := client.GetMessageChannel("INBOX", done)
+	if err != nil {
+		fmt.Println("Loading mail channel error:", err)
+		os.Exit(1)
+	}
+
+	count := 0
+	for msg := range messagesChannel {
+		count++
+		fmt.Printf("Email sender %+v:\n", *msg.Envelope.Sender[0])
+		fmt.Println("Mail ID:", msg.Envelope.MessageId)
+		fmt.Println("Mail subject:", msg.Envelope.Subject)
+		fmt.Println("Mail body:", msg.Body)
+		if count > 101 {
+			done <- true
+			break
+		}
+	}
+	fmt.Println("Emails number: ", count)
 }
 
 func iterateByEmails(client fetch.ImapClient) {
