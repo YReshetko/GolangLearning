@@ -1,6 +1,7 @@
 {
     "imapHost" : "imap.gmail.com",
     "imapPort" : 993,
-    "clientEmail" : "some_email@gmail.com",
-    "clientPassword" : "*******"
+    "clientEmail" : "some_user@gmail.com",
+    "clientPassword" : "*****",
+    "expectedSender" : "some_user"
 }

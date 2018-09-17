@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -16,8 +17,7 @@ func main() {
 	var config config.Configuration
 	exec(config.Load())
 	log(config)
-	client := fetch.NewImapClient()
-	client.Init(config)
+	client := fetch.NewImapClient(config)
 	exec(client.Connect())
 	exec(client.Login())
 	defer client.Logout()
@@ -31,11 +31,11 @@ func main() {
 		fmt.Println(info)
 	}
 	//iterateByEmails(client)
-	getMessagestByChannel(client)
+	getMessagestByChannel(client, config)
 
 }
 
-func getMessagestByChannel(client fetch.ImapClient) {
+func getMessagestByChannel(client fetch.ImapClient, config config.Configuration) {
 	done := make(chan bool, 2)
 	messagesChannel, err := client.GetMessageChannel("INBOX", done)
 	if err != nil {
@@ -46,11 +46,17 @@ func getMessagestByChannel(client fetch.ImapClient) {
 	count := 0
 	for msg := range messagesChannel {
 		count++
-		fmt.Printf("Email sender %+v:\n", *msg.Envelope.Sender[0])
-		fmt.Println("Mail ID:", msg.Envelope.MessageId)
-		fmt.Println("Mail subject:", msg.Envelope.Subject)
-		fmt.Println("Mail body:", msg.Body)
-		if count > 101 {
+		if needsProcessing(msg, config.ExpectedSender) {
+			processEmail(msg)
+		} else {
+			//fmt.Println("Processing is not needed!")
+		}
+		//fmt.Printf("Email sender %+v:\n", *msg.Envelope)
+		//fmt.Println("Mail ID:", msg.Envelope.MessageId)
+		//fmt.Println("Mail subject:", msg.Envelope.Subject)
+		//fmt.Println("Mail body:", msg.Body)
+
+		if count > 10000 {
 			done <- true
 			break
 		}
@@ -58,74 +64,114 @@ func getMessagestByChannel(client fetch.ImapClient) {
 	fmt.Println("Emails number: ", count)
 }
 
-func iterateByEmails(client fetch.ImapClient) {
-	iterator, err := client.MailIterator("INBOX")
-	if err != nil {
-		fmt.Println("Cant retrieve mail iterator:", err)
-		os.Exit(1)
+func needsProcessing(msg *imap.Message, expectedSender string) bool {
+	var from string
+	if msg.Envelope != nil {
+		from = msg.Envelope.From[0].MailboxName
 	}
-	for ; ; iterator.HasNext() {
-		msgChan, err := iterator.Next()
-		if err != nil {
-			fmt.Println("Cant retrieve an mail:", err)
-			os.Exit(1)
-		}
-		msg := <-msgChan
-		fmt.Println("----------------------------------")
-		//fmt.Println("Mail ID:", msg.Envelope.MessageId)
-		//fmt.Println("Mail subject:", msg.Envelope.Subject)
-		fmt.Println("Mail body:", msg.Body)
+	if from == expectedSender {
+		fmt.Println("Found expected email:")
+		fmt.Printf("Email sender: %+v\n", msg.Envelope)
+		fmt.Printf("Email uid: %+v\n", msg.Uid)
+		fmt.Printf("From: %+v\n", msg.Envelope.From[0].MailboxName)
+		fmt.Println("Mail subject:", msg.Envelope.Subject)
+		return true
+	}
+	return false
+}
 
-		section := &imap.BodySectionName{}
-		r := msg.GetBody(section)
-		if r == nil {
-			fmt.Println("Server didn't returned message body")
-			continue
-		}
+func processEmail(msg *imap.Message) error {
+	section := &imap.BodySectionName{}
+	r := msg.GetBody(section)
+	if r == nil {
+		fmt.Println("Server didn't returned message body")
+		return nil
+	}
 
-		// Create a new mail reader
-		mr, err := mail.CreateReader(r)
-		if err != nil {
+	// Create a new mail reader
+	mr, err := mail.CreateReader(r)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+
+	// Process each message's part
+	for {
+		p, err := mr.NextPart()
+		if err == io.EOF {
+			break
+		} else if err != nil {
 			fmt.Println(err)
-			continue
 		}
 
-		// Process each message's part
+		/*b := make([]byte, 26)
 		for {
-			p, err := mr.NextPart()
+			n, err := p.Body.Read(b)
+			fmt.Printf("n=%v, err=%v, b[]=%v\n", n, err, b)
+			fmt.Printf("b[:n]=%q\n", b[:n])
 			if err == io.EOF {
 				break
-			} else if err != nil {
-				fmt.Println(err)
+			}
+		}*/
+		switch h := p.Header.(type) {
+		case mail.TextHeader:
+			// This is the message's text (can be plain-text or HTML)
+			b, _ := ioutil.ReadAll(p.Body)
+			fmt.Printf("Got text: %s\n", string(b))
+		case mail.AttachmentHeader:
+			// This is an attachment
+			filename, _ := h.Filename()
+			err := saveFile(p, filename)
+			if err == nil {
+				fmt.Printf("Saved attachment: %s\n", filename)
+			} else {
+				fmt.Printf("Cant save attached file: %s, error: %v\n", filename, err)
+				os.Exit(1)
 			}
 
-			switch h := p.Header.(type) {
-			case mail.TextHeader:
-				// This is the message's text (can be plain-text or HTML)
-				b, _ := ioutil.ReadAll(p.Body)
-				fmt.Println("Got text: %v", string(b))
-			case mail.AttachmentHeader:
-				// This is an attachment
-				filename, _ := h.Filename()
-				fmt.Println("Got attachment: %v", filename)
-			}
 		}
 	}
+	return nil
 }
 
-func getMessagestFrom(client fetch.ImapClient) {
-	messages, err := client.Select("INBOX", 1, 1)
+func saveFile(messageReader *mail.Part, fileName string) error {
+	// open output file
+	fo, err := os.Create("D:/recordStorage/" + fileName)
 	if err != nil {
-		fmt.Println("Loading emails error:", err)
-		os.Exit(1)
+		return err
 	}
-	for msg := range messages {
-		fmt.Println("Mail ID:", msg.Envelope.MessageId)
-		fmt.Println("Mail subject:", msg.Envelope.Subject)
-		fmt.Println("Mail body:", msg.Body)
-	}
-}
+	// close fo on exit and check for its returned error
+	defer func() {
+		if err := fo.Close(); err != nil {
+			panic(err)
+		}
+	}()
+	// make a write buffer
+	w := bufio.NewWriter(fo)
 
+	// make a buffer to keep chunks that are read
+	buf := make([]byte, 1024)
+	for {
+		// read a chunk
+		n, err := messageReader.Body.Read(buf)
+		if err != nil && err != io.EOF {
+			return err
+		}
+		if n == 0 {
+			break
+		}
+
+		// write a chunk
+		if _, err := w.Write(buf[:n]); err != nil {
+			return err
+		}
+	}
+
+	if err = w.Flush(); err != nil {
+		return err
+	}
+	return nil
+}
 func exec(err error) {
 	if err != nil {
 		fmt.Println("Error:", err)

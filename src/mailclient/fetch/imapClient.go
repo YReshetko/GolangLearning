@@ -16,24 +16,18 @@ type imapClient struct {
 	client *client.Client
 }
 
-func NewImapClient() ImapClient {
-	return &imapClient{}
+func NewImapClient(config config.Configuration) ImapClient {
+	return &imapClient{config: config}
 }
 
 type ImapClient interface {
-	Init(config config.Configuration)
 	Connect() error
 	Login() error
 	Logout() error
 	Mailboxes() (chan *imap.MailboxInfo, error)
-	MailIterator(box string) (Iterator, error)
-	Select(box string, from, to uint32) (chan *imap.Message, error)
 	GetMessageChannel(box string, done chan bool) (chan *imap.Message, error)
 }
 
-func (cli *imapClient) Init(config config.Configuration) {
-	cli.config = config
-}
 func (cli *imapClient) Connect() error {
 	server := cli.config.ImapHost + ":" + strconv.Itoa(cli.config.ImapPort)
 	fmt.Printf("Server: %s", server)
@@ -74,39 +68,6 @@ func (cli *imapClient) Mailboxes() (chan *imap.MailboxInfo, error) {
 	}
 	return mailboxes, nil
 }
-func (cli *imapClient) MailIterator(box string) (Iterator, error) {
-	messagesNumber, err := getNumMessagesForBox(box, cli.client)
-	if err != nil {
-		log.Fatal(err)
-		return nil, err
-	}
-	return &mailIterator{messagesNumber, cli.client}, nil
-}
-func (cli *imapClient) Select(box string, from, to uint32) (chan *imap.Message, error) {
-	messagesNumber, err := getNumMessagesForBox(box, cli.client)
-	if err != nil {
-		log.Fatal(err)
-		return nil, err
-	}
-	if messagesNumber < to {
-		to = messagesNumber
-	}
-
-	seqset := new(imap.SeqSet)
-	seqset.AddRange(from, to)
-
-	messages := make(chan *imap.Message, 1)
-	done := make(chan error, 1)
-	go func() {
-		done <- cli.client.Fetch(seqset, []imap.FetchItem{imap.FetchEnvelope}, messages)
-	}()
-	if err := <-done; err != nil {
-		log.Fatal(err)
-		return nil, err
-	}
-
-	return messages, nil
-}
 
 func (cli *imapClient) GetMessageChannel(box string, done chan bool) (chan *imap.Message, error) {
 	messagesNumber, err := getNumMessagesForBox(box, cli.client)
@@ -116,58 +77,65 @@ func (cli *imapClient) GetMessageChannel(box string, done chan bool) (chan *imap
 	}
 	bufferSize := uint32(100)
 	messagesOut := make(chan *imap.Message, bufferSize/2)
-
-	bufferCompleted := make(chan error, 1)
 	fmt.Printf("Initial messages number: %v\n", messagesNumber)
-	go func() {
-		defer func() {
-			fmt.Println("Closing output channel!!!!")
-			close(messagesOut)
-		}()
-		messagesNumber++
-		for {
-			if messagesNumber-bufferSize > messagesNumber {
-				bufferSize = messagesNumber - 2
-				messagesNumber = 1
-			} else {
-				messagesNumber = messagesNumber - bufferSize - 1
-			}
-			from := messagesNumber
-			to := messagesNumber + bufferSize
-			chanSize := bufferSize + 1
-			fmt.Printf("Range: %v-%v; Channel size: %v\n", from, to, chanSize)
 
-			messages := make(chan *imap.Message, chanSize)
-			select {
-			case <-done:
-				break
-			default:
-				seqset := new(imap.SeqSet)
-				seqset.AddRange(from, to)
-				bufferCompleted <- cli.client.Fetch(seqset, []imap.FetchItem{imap.FetchEnvelope}, messages)
-			}
-			if err := <-bufferCompleted; err == nil {
-				for msg := range messages {
-					select {
-					case <-done:
-						fmt.Println("DONE!!!!!!")
-						return
-					default:
-						messagesOut <- msg
-					}
-
-				}
-			} else {
-				log.Fatal(err)
-				break
-			}
-			if messagesNumber == 1 {
-				break
-			}
-		}
-
-	}()
+	go startFetching(messagesOut, done, cli, NewEnvelopFetchManager(cli.client.Fetch, messagesNumber, bufferSize))
 	return messagesOut, nil
+}
+
+func startFetching(messagesOut chan *imap.Message, done chan bool, cli *imapClient, fetchManager FetchManager) {
+	defer func() {
+		fmt.Println("Closing output channel!!!!")
+		close(messagesOut)
+	}()
+	bufferCompleted := make(chan error, 1)
+	//section := &imap.BodySectionName{}
+	//fetchItems := []imap.FetchItem{imap.FetchEnvelope, imap.FetchUid}
+	//fetchItems := []imap.FetchItem{imap.FetchEnvelope, section.FetchItem(), imap.FetchUid}
+	//fetchItems := []imap.FetchItem{imap.FetchEnvelope}
+	//fetchItems := []imap.FetchItem{section.FetchItem()}
+	//var seqset *imap.SeqSet
+	//messagesNumber++
+	for fetchManager.HasNext() {
+		//from, to := recalculateMessageRange(&messagesNumber, &bufferSize)
+		chanSize := fetchManager.BufferSize() + 1
+		//fmt.Printf("Range: %v-%v; Channel size: %v; messagesNumber: %v; bufferSize: %v\n", from, to, chanSize, messagesNumber, bufferSize)
+		messages := make(chan *imap.Message, chanSize)
+		select {
+		case <-done:
+			break
+		default:
+			//seqset = new(imap.SeqSet)
+			//seqset.AddRange(from, to)
+			bufferCompleted <- fetchManager.FetchFunction()(fetchManager.NextSequenceSet(), fetchManager.FetchItems(), messages)
+		}
+		needsContinue := true
+		if err := <-bufferCompleted; err == nil {
+			needsContinue = redirectMessages(messages, messagesOut, done)
+		} else {
+			log.Fatal(err)
+			break
+		}
+		if !needsContinue {
+			break
+		}
+	}
+
+}
+
+func redirectMessages(from, to chan *imap.Message, done chan bool) bool {
+	needsContinue := true
+	for msg := range from {
+		select {
+		case <-done:
+			fmt.Println("DONE!!!!!!")
+			needsContinue = false
+			break
+		default:
+			to <- msg
+		}
+	}
+	return needsContinue
 }
 
 func getNumMessagesForBox(box string, client *client.Client) (uint32, error) {

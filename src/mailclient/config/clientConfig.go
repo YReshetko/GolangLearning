@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	defaultConfigFileName = "configuration.json"
+	defaultConfigFileName = "configuration_dev.json"
 )
 
 type Configuration struct {
@@ -15,6 +15,7 @@ type Configuration struct {
 	ImapPort       int
 	ClientEmail    string
 	ClientPassword string
+	ExpectedSender string
 }
 
 type ErrorLoadConfig struct {
