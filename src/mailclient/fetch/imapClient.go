@@ -26,7 +26,7 @@ type ImapClient interface {
 	Logout() error
 	Mailboxes() (chan *imap.MailboxInfo, error)
 	GetMessageChannel(box string, done chan bool) (chan *imap.Message, error)
-	GetMessageBodyChannel(box string, done chan bool, uids []uint32) (chan *imap.Message, error)
+	GetMessageBodyChannel(box string, uids []uint32) (chan *imap.Message, error)
 }
 
 func (cli *imapClient) Connect() error {
@@ -83,11 +83,11 @@ func (cli *imapClient) GetMessageChannel(box string, done chan bool) (chan *imap
 	return messagesOut, nil
 }
 
-func (cli *imapClient) GetMessageBodyChannel(box string, done chan bool, uids []uint32) (chan *imap.Message, error) {
-	bufferSize := uint32(100)
+func (cli *imapClient) GetMessageBodyChannel(box string, uids []uint32) (chan *imap.Message, error) {
+	bufferSize := uint32(5)
 	messagesOut := make(chan *imap.Message, bufferSize/2)
 	fmt.Printf("Initial uids number: %v\n", len(uids))
-	go startFetching(messagesOut, done, cli, NewBodyFetchManager(cli.client.UidFetch, uids, bufferSize))
+	go startFetching(messagesOut, nil, cli, NewBodyFetchManager(cli.client.UidFetch, uids, bufferSize))
 	return messagesOut, nil
 }
 

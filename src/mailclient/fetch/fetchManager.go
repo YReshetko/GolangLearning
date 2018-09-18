@@ -25,7 +25,8 @@ type envelopFetchManager struct {
 
 type bodyFetchManager struct {
 	fetchManager
-	uids []uint32
+	uids         []uint32
+	currentIndex int
 }
 
 type FetchManager interface {
@@ -50,10 +51,11 @@ func NewBodyFetchManager(fetch fetchFunc, uids []uint32, buffersize uint32) Fetc
 	section := &imap.BodySectionName{}
 	return &bodyFetchManager{
 		fetchManager{
-			fetch, []imap.FetchItem{section.FetchItem()},
+			fetch, []imap.FetchItem{section.FetchItem(), imap.FetchUid},
 			buffersize,
 		},
 		uids,
+		0,
 	}
 }
 
@@ -87,11 +89,21 @@ func (manager *envelopFetchManager) recalculateMessageRange() (uint32, uint32) {
 }
 
 func (manager *bodyFetchManager) NextSequenceSet() *imap.SeqSet {
-	// TODO: Implement next subseq of uids
+	currentIndex := manager.currentIndex
+	newIndex := currentIndex + int(manager.buffersize)
+	slice := make([]uint32, int(manager.buffersize))
+	if newIndex < len(manager.uids) {
+		slice = manager.uids[currentIndex:newIndex]
+		manager.currentIndex = newIndex + 1
+	} else {
+		slice = manager.uids[currentIndex:]
+		manager.currentIndex = len(manager.uids)
+	}
+
 	seqset := new(imap.SeqSet)
+	seqset.AddNum(slice...)
 	return seqset
 }
 func (manager *bodyFetchManager) HasNext() bool {
-	// TODO: Implement
-	return true
+	return manager.currentIndex < len(manager.uids)
 }

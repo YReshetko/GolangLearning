@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mailclient/config"
 	"mailclient/fetch"
 	"os"
@@ -30,7 +29,6 @@ func main() {
 	for info := range boxinfos {
 		fmt.Println(info)
 	}
-	//iterateByEmails(client)
 	getMessagestByChannel(client, config)
 
 }
@@ -44,28 +42,37 @@ func getMessagestByChannel(client fetch.ImapClient, config config.Configuration)
 	}
 
 	count := 0
+	uidsToProcess := make([]uint32, 0, 100)
 	for msg := range messagesChannel {
 		count++
 		if needsProcessing(msg, config.ExpectedSender) {
 			if uidProcessedBefore(msg) {
 				done <- true
 			} else {
-				processEmail(msg)
+				uidsToProcess = append(uidsToProcess, msg.Uid)
 			}
 
-		} else {
-			//fmt.Println("Processing is not needed!")
 		}
-		//fmt.Printf("Email sender %+v:\n", *msg.Envelope)
-		//fmt.Println("Mail ID:", msg.Envelope.MessageId)
-		//fmt.Println("Mail subject:", msg.Envelope.Subject)
-		//fmt.Println("Mail body:", msg.Body)
-
+		// TODO Remove as redundand
 		if count > 10000 {
 			done <- true
 			break
 		}
 	}
+	fmt.Printf("Found uids: %v\n", uidsToProcess)
+	if len(uidsToProcess) > 0 {
+		messagesChannel, err := client.GetMessageBodyChannel("INBOX", uidsToProcess)
+		if err != nil {
+			fmt.Println("Loading mail channel error:", err)
+			os.Exit(1)
+		}
+		for msg := range messagesChannel {
+			processEmail(msg)
+		}
+	} else {
+		fmt.Println("No emails to fetch")
+	}
+
 	fmt.Println("Emails number: ", count)
 }
 
@@ -85,7 +92,12 @@ func needsProcessing(msg *imap.Message, expectedSender string) bool {
 	return false
 }
 func uidProcessedBefore(msg *imap.Message) bool {
+	// TODO implement checker via DB
 	return false
+}
+
+func matchPattern(text string) bool {
+
 }
 
 func processEmail(msg *imap.Message) error {
@@ -104,28 +116,19 @@ func processEmail(msg *imap.Message) error {
 	}
 
 	// Process each message's part
-	for {
+	/*for {
 		p, err := mr.NextPart()
 		if err == io.EOF {
 			break
 		} else if err != nil {
 			fmt.Println(err)
 		}
-
-		/*b := make([]byte, 26)
-		for {
-			n, err := p.Body.Read(b)
-			fmt.Printf("n=%v, err=%v, b[]=%v\n", n, err, b)
-			fmt.Printf("b[:n]=%q\n", b[:n])
-			if err == io.EOF {
-				break
-			}
-		}*/
 		switch h := p.Header.(type) {
 		case mail.TextHeader:
 			// This is the message's text (can be plain-text or HTML)
 			b, _ := ioutil.ReadAll(p.Body)
-			fmt.Printf("Got text: %s\n", string(b))
+			partText := string(b)
+			fmt.Printf("Got text: %s\n", string(b[:100]))
 		case mail.AttachmentHeader:
 			// This is an attachment
 			filename, _ := h.Filename()
@@ -138,7 +141,7 @@ func processEmail(msg *imap.Message) error {
 			}
 
 		}
-	}
+	}*/
 	return nil
 }
 
