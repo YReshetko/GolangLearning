@@ -47,7 +47,12 @@ func getMessagestByChannel(client fetch.ImapClient, config config.Configuration)
 	for msg := range messagesChannel {
 		count++
 		if needsProcessing(msg, config.ExpectedSender) {
-			processEmail(msg)
+			if uidProcessedBefore(msg) {
+				done <- true
+			} else {
+				processEmail(msg)
+			}
+
 		} else {
 			//fmt.Println("Processing is not needed!")
 		}
@@ -77,6 +82,9 @@ func needsProcessing(msg *imap.Message, expectedSender string) bool {
 		fmt.Println("Mail subject:", msg.Envelope.Subject)
 		return true
 	}
+	return false
+}
+func uidProcessedBefore(msg *imap.Message) bool {
 	return false
 }
 

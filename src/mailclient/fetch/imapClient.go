@@ -26,6 +26,7 @@ type ImapClient interface {
 	Logout() error
 	Mailboxes() (chan *imap.MailboxInfo, error)
 	GetMessageChannel(box string, done chan bool) (chan *imap.Message, error)
+	GetMessageBodyChannel(box string, done chan bool, uids []uint32) (chan *imap.Message, error)
 }
 
 func (cli *imapClient) Connect() error {
@@ -78,8 +79,15 @@ func (cli *imapClient) GetMessageChannel(box string, done chan bool) (chan *imap
 	bufferSize := uint32(100)
 	messagesOut := make(chan *imap.Message, bufferSize/2)
 	fmt.Printf("Initial messages number: %v\n", messagesNumber)
-
 	go startFetching(messagesOut, done, cli, NewEnvelopFetchManager(cli.client.Fetch, messagesNumber, bufferSize))
+	return messagesOut, nil
+}
+
+func (cli *imapClient) GetMessageBodyChannel(box string, done chan bool, uids []uint32) (chan *imap.Message, error) {
+	bufferSize := uint32(100)
+	messagesOut := make(chan *imap.Message, bufferSize/2)
+	fmt.Printf("Initial uids number: %v\n", len(uids))
+	go startFetching(messagesOut, done, cli, NewBodyFetchManager(cli.client.UidFetch, uids, bufferSize))
 	return messagesOut, nil
 }
 
@@ -89,53 +97,29 @@ func startFetching(messagesOut chan *imap.Message, done chan bool, cli *imapClie
 		close(messagesOut)
 	}()
 	bufferCompleted := make(chan error, 1)
-	//section := &imap.BodySectionName{}
-	//fetchItems := []imap.FetchItem{imap.FetchEnvelope, imap.FetchUid}
-	//fetchItems := []imap.FetchItem{imap.FetchEnvelope, section.FetchItem(), imap.FetchUid}
-	//fetchItems := []imap.FetchItem{imap.FetchEnvelope}
-	//fetchItems := []imap.FetchItem{section.FetchItem()}
-	//var seqset *imap.SeqSet
-	//messagesNumber++
 	for fetchManager.HasNext() {
-		//from, to := recalculateMessageRange(&messagesNumber, &bufferSize)
 		chanSize := fetchManager.BufferSize() + 1
-		//fmt.Printf("Range: %v-%v; Channel size: %v; messagesNumber: %v; bufferSize: %v\n", from, to, chanSize, messagesNumber, bufferSize)
 		messages := make(chan *imap.Message, chanSize)
 		select {
 		case <-done:
 			break
 		default:
-			//seqset = new(imap.SeqSet)
-			//seqset.AddRange(from, to)
 			bufferCompleted <- fetchManager.FetchFunction()(fetchManager.NextSequenceSet(), fetchManager.FetchItems(), messages)
 		}
-		needsContinue := true
 		if err := <-bufferCompleted; err == nil {
-			needsContinue = redirectMessages(messages, messagesOut, done)
+			redirectMessages(messages, messagesOut)
 		} else {
 			log.Fatal(err)
-			break
-		}
-		if !needsContinue {
 			break
 		}
 	}
 
 }
 
-func redirectMessages(from, to chan *imap.Message, done chan bool) bool {
-	needsContinue := true
+func redirectMessages(from, to chan *imap.Message) {
 	for msg := range from {
-		select {
-		case <-done:
-			fmt.Println("DONE!!!!!!")
-			needsContinue = false
-			break
-		default:
-			to <- msg
-		}
+		to <- msg
 	}
-	return needsContinue
 }
 
 func getNumMessagesForBox(box string, client *client.Client) (uint32, error) {
