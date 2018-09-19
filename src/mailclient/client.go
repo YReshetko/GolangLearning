@@ -12,6 +12,12 @@ import (
 	"github.com/emersion/go-message/mail"
 )
 
+const (
+	//bodyPattern string = "выковырять ([0-9]+) затем (.|\n)+ числовую ([A-Za-z0-9]+),.+ ([0-9]+)"
+	bodyPattern string = "выковырять ([0-9]+) затем (.|\n)+ числовую ([A-Za-z0-9]+),.+ ([0-9]+)"
+	filePattern string = "[0-9]{1,2}(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[0-9]{4}_.*\\.txt"
+)
+
 func main() {
 	var config config.Configuration
 	exec(config.Load())
@@ -54,7 +60,7 @@ func getMessagestByChannel(client fetch.ImapClient, config config.Configuration)
 
 		}
 		// TODO Remove as redundand
-		if count > 10000 {
+		if count > 100 {
 			done <- true
 			break
 		}
@@ -96,10 +102,6 @@ func uidProcessedBefore(msg *imap.Message) bool {
 	return false
 }
 
-func matchPattern(text string) bool {
-
-}
-
 func processEmail(msg *imap.Message) error {
 	section := &imap.BodySectionName{}
 	r := msg.GetBody(section)
@@ -114,7 +116,12 @@ func processEmail(msg *imap.Message) error {
 		fmt.Println(err)
 		return nil
 	}
-
+	bodyReader := fetch.NewEmailReader(bodyPattern, filePattern)
+	mailToSave, ok := bodyReader.ReadEmail(mr, msg.Uid)
+	if ok {
+		fmt.Println("found email to save")
+		fmt.Printf("The structure of email to save: %+v\n", mailToSave)
+	}
 	// Process each message's part
 	/*for {
 		p, err := mr.NextPart()

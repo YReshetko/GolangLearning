@@ -16,7 +16,7 @@ type emailReader struct {
 }
 
 type EmailReader interface {
-	ReadEmail(reader mail.Reader, uid uint32) (domain.EmailToSave, bool)
+	ReadEmail(reader *mail.Reader, uid uint32) (domain.EmailToSave, bool)
 }
 
 func NewEmailReader(bodyRegexp, fileRegexp string) EmailReader {
@@ -26,7 +26,7 @@ func NewEmailReader(bodyRegexp, fileRegexp string) EmailReader {
 	}
 }
 
-func (emailReader *emailReader) ReadEmail(reader mail.Reader, uid uint32) (domain.EmailToSave, bool) {
+func (emailReader *emailReader) ReadEmail(reader *mail.Reader, uid uint32) (domain.EmailToSave, bool) {
 	emailToSave := domain.EmailToSave{}
 	emailData := domain.EmailData{Uid: uid}
 	foundTextData := false
@@ -63,7 +63,10 @@ func (emailReader *emailReader) ReadEmail(reader mail.Reader, uid uint32) (domai
 }
 
 func (emailReader *emailReader) matchText(text string) bool {
-	return emailReader.emailBodyRegexp.MatchString(text)
+	ok := emailReader.emailBodyRegexp.MatchString(text)
+	fmt.Printf("Email text: %v\n", text)
+	fmt.Printf("%q\n", emailReader.emailBodyRegexp.FindStringSubmatch(text))
+	return ok
 }
 func (emailReader *emailReader) matchFileName(text string) bool {
 	return emailReader.attachedFileRegexp.MatchString(text)

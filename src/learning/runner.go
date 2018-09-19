@@ -11,6 +11,7 @@ import (
 	"learning/interf"
 	"learning/methods"
 	"learning/reader"
+	"learning/regulars"
 	"learning/synchronization"
 )
 
@@ -25,7 +26,12 @@ func main() {
 	//readerPack()
 	//readerImage()
 	//gorutPack()
-	synchPack()
+	//synchPack()
+	regularsPack()
+}
+
+func regularsPack() {
+	regulars.Experiment1()
 }
 func synchPack() {
 	//synchronization.Experiment1()
