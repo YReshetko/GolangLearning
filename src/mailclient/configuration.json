@@ -1,7 +1,15 @@
 {
-    "imapHost" : "imap.gmail.com",
-    "imapPort" : 993,
-    "clientEmail" : "some_user@gmail.com",
-    "clientPassword" : "*****",
-    "expectedSender" : "some_user"
+    "hostConfiguration" : {
+        "imapHost" : "imap.gmail.com",
+        "imapPort" : 993,
+        "clientEmail" : "some_user@gmail.com",
+        "clientPassword" : "*****"
+    },
+    "emailStructure" :{
+        "expectedSender" : "some_user",
+        "fileNameRegExp" : "[0-9]{1,2}(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[0-9]{4}_.*\\.txt",
+	    "whoCallsRegExp" : "выковырять ([0-9]+) затем",
+	    "inputNumberRegExp" : "числовую ([абвгдеёжзийклмнопрстуфхцчшщьъыэюя0-9]+),",
+	    "participantRegExp" : "номер ([0-9]+)"
+    }
 }

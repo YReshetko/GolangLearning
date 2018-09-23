@@ -12,11 +12,11 @@ import (
 )
 
 type imapClient struct {
-	config config.Configuration
+	config config.HostConfig
 	client *client.Client
 }
 
-func NewImapClient(config config.Configuration) ImapClient {
+func NewImapClient(config config.HostConfig) ImapClient {
 	return &imapClient{config: config}
 }
 
@@ -84,7 +84,7 @@ func (cli *imapClient) GetMessageChannel(box string, done chan bool) (chan *imap
 }
 
 func (cli *imapClient) GetMessageBodyChannel(box string, uids []uint32) (chan *imap.Message, error) {
-	bufferSize := uint32(5)
+	bufferSize := uint32(2)
 	messagesOut := make(chan *imap.Message, bufferSize/2)
 	fmt.Printf("Initial uids number: %v\n", len(uids))
 	go startFetching(messagesOut, nil, cli, NewBodyFetchManager(cli.client.UidFetch, uids, bufferSize))
@@ -100,15 +100,22 @@ func startFetching(messagesOut chan *imap.Message, done chan bool, cli *imapClie
 	for fetchManager.HasNext() {
 		chanSize := fetchManager.BufferSize() + 1
 		messages := make(chan *imap.Message, chanSize)
+		fmt.Println("Messages chan size", chanSize)
 		select {
 		case <-done:
+			fmt.Println("Can read from done!!!!")
 			break
 		default:
+			fmt.Println("Start fetching emails")
 			bufferCompleted <- fetchManager.FetchFunction()(fetchManager.NextSequenceSet(), fetchManager.FetchItems(), messages)
+			fmt.Println("Complete fetching emails")
 		}
 		if err := <-bufferCompleted; err == nil {
+			fmt.Println("Start redirecting")
 			redirectMessages(messages, messagesOut)
+			fmt.Println("Complete redirecting")
 		} else {
+			fmt.Println("Got an error")
 			log.Fatal(err)
 			break
 		}

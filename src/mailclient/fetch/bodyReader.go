@@ -4,26 +4,35 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"mailclient/config"
 	"mailclient/domain"
 	"regexp"
 
 	"github.com/emersion/go-message/mail"
 )
 
+const (
+	ATTACHED_FILE_NAME = "attached-file-name"
+	WHO_CALLS          = "who-calls"
+	INPUT_NUMBER       = "input-number"
+	PARTICIPANT        = "participant"
+)
+
 type emailReader struct {
-	emailBodyRegexp    *regexp.Regexp
-	attachedFileRegexp *regexp.Regexp
+	regExpMap map[string]*regexp.Regexp
 }
 
 type EmailReader interface {
 	ReadEmail(reader *mail.Reader, uid uint32) (domain.EmailToSave, bool)
 }
 
-func NewEmailReader(bodyRegexp, fileRegexp string) EmailReader {
-	return &emailReader{
-		regexp.MustCompile(bodyRegexp),
-		regexp.MustCompile(fileRegexp),
-	}
+func NewEmailReader(regexpConfig config.MailStructure) EmailReader {
+	regExpMap := make(map[string]*regexp.Regexp)
+	regExpMap[ATTACHED_FILE_NAME] = regexp.MustCompile(regexpConfig.FileNameRegExp)
+	regExpMap[WHO_CALLS] = regexp.MustCompile(regexpConfig.WhoCallsRegExp)
+	regExpMap[INPUT_NUMBER] = regexp.MustCompile(regexpConfig.InputNumberRegExp)
+	regExpMap[PARTICIPANT] = regexp.MustCompile(regexpConfig.ParticipantRegExp)
+	return &emailReader{regExpMap}
 }
 
 func (emailReader *emailReader) ReadEmail(reader *mail.Reader, uid uint32) (domain.EmailToSave, bool) {
@@ -63,11 +72,14 @@ func (emailReader *emailReader) ReadEmail(reader *mail.Reader, uid uint32) (doma
 }
 
 func (emailReader *emailReader) matchText(text string) bool {
-	ok := emailReader.emailBodyRegexp.MatchString(text)
+	ok := true
+	ok1 := ok && emailReader.regExpMap[WHO_CALLS].MatchString(text)
+	ok2 := ok && emailReader.regExpMap[INPUT_NUMBER].MatchString(text)
+	ok3 := ok && emailReader.regExpMap[PARTICIPANT].MatchString(text)
 	fmt.Printf("Email text: %v\n", text)
-	fmt.Printf("%q\n", emailReader.emailBodyRegexp.FindStringSubmatch(text))
-	return ok
+	fmt.Printf("Match value: %v, %v, %v\n", ok1, ok2, ok3)
+	return ok1 && ok2 && ok3
 }
 func (emailReader *emailReader) matchFileName(text string) bool {
-	return emailReader.attachedFileRegexp.MatchString(text)
+	return emailReader.regExpMap[ATTACHED_FILE_NAME].MatchString(text)
 }

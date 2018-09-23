@@ -1,6 +1,10 @@
 package fetch
 
-import imap "github.com/emersion/go-imap"
+import (
+	"fmt"
+
+	imap "github.com/emersion/go-imap"
+)
 
 /*
 Fetch Items example
@@ -94,7 +98,8 @@ func (manager *bodyFetchManager) NextSequenceSet() *imap.SeqSet {
 	slice := make([]uint32, int(manager.buffersize))
 	if newIndex < len(manager.uids) {
 		slice = manager.uids[currentIndex:newIndex]
-		manager.currentIndex = newIndex + 1
+		manager.currentIndex = newIndex
+		manager.buffersize = uint32(newIndex) - uint32(currentIndex)
 	} else {
 		slice = manager.uids[currentIndex:]
 		manager.currentIndex = len(manager.uids)
@@ -102,8 +107,16 @@ func (manager *bodyFetchManager) NextSequenceSet() *imap.SeqSet {
 
 	seqset := new(imap.SeqSet)
 	seqset.AddNum(slice...)
+	fmt.Println("Next sequence set: ", slice)
+	fmt.Printf("Seqset: %+v\n", seqset)
 	return seqset
 }
 func (manager *bodyFetchManager) HasNext() bool {
+	currentIndex := manager.currentIndex
+	newIndex := currentIndex + int(manager.buffersize)
+	if newIndex >= len(manager.uids) {
+		manager.buffersize = uint32(len(manager.uids)) - uint32(currentIndex)
+		fmt.Println("Recalculated buffer size:", manager.buffersize)
+	}
 	return manager.currentIndex < len(manager.uids)
 }

@@ -7,22 +7,17 @@ import (
 	"mailclient/config"
 	"mailclient/fetch"
 	"os"
+	"time"
 
 	imap "github.com/emersion/go-imap"
 	"github.com/emersion/go-message/mail"
-)
-
-const (
-	//bodyPattern string = "выковырять ([0-9]+) затем (.|\n)+ числовую ([A-Za-z0-9]+),.+ ([0-9]+)"
-	bodyPattern string = "выковырять ([0-9]+) затем (.|\n)+ числовую ([A-Za-z0-9]+),.+ ([0-9]+)"
-	filePattern string = "[0-9]{1,2}(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[0-9]{4}_.*\\.txt"
 )
 
 func main() {
 	var config config.Configuration
 	exec(config.Load())
 	log(config)
-	client := fetch.NewImapClient(config)
+	client := fetch.NewImapClient(config.HostConfiguration)
 	exec(client.Connect())
 	exec(client.Login())
 	defer client.Logout()
@@ -51,7 +46,7 @@ func getMessagestByChannel(client fetch.ImapClient, config config.Configuration)
 	uidsToProcess := make([]uint32, 0, 100)
 	for msg := range messagesChannel {
 		count++
-		if needsProcessing(msg, config.ExpectedSender) {
+		if needsProcessing(msg, config.EmailStructure.ExpectedSender) {
 			if uidProcessedBefore(msg) {
 				done <- true
 			} else {
@@ -65,6 +60,7 @@ func getMessagestByChannel(client fetch.ImapClient, config config.Configuration)
 			break
 		}
 	}
+	time.Sleep(2 * time.Second)
 	fmt.Printf("Found uids: %v\n", uidsToProcess)
 	if len(uidsToProcess) > 0 {
 		messagesChannel, err := client.GetMessageBodyChannel("INBOX", uidsToProcess)
@@ -73,7 +69,7 @@ func getMessagestByChannel(client fetch.ImapClient, config config.Configuration)
 			os.Exit(1)
 		}
 		for msg := range messagesChannel {
-			processEmail(msg)
+			processEmail(msg, config.EmailStructure)
 		}
 	} else {
 		fmt.Println("No emails to fetch")
@@ -102,7 +98,7 @@ func uidProcessedBefore(msg *imap.Message) bool {
 	return false
 }
 
-func processEmail(msg *imap.Message) error {
+func processEmail(msg *imap.Message, config config.MailStructure) error {
 	section := &imap.BodySectionName{}
 	r := msg.GetBody(section)
 	if r == nil {
@@ -116,7 +112,9 @@ func processEmail(msg *imap.Message) error {
 		fmt.Println(err)
 		return nil
 	}
-	bodyReader := fetch.NewEmailReader(bodyPattern, filePattern)
+	fmt.Println("Create email reader")
+	bodyReader := fetch.NewEmailReader(config)
+	fmt.Println("Start reading email")
 	mailToSave, ok := bodyReader.ReadEmail(mr, msg.Uid)
 	if ok {
 		fmt.Println("found email to save")

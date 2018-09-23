@@ -11,11 +11,21 @@ const (
 )
 
 type Configuration struct {
+	HostConfiguration HostConfig
+	EmailStructure    MailStructure
+}
+type HostConfig struct {
 	ImapHost       string
 	ImapPort       int
 	ClientEmail    string
 	ClientPassword string
-	ExpectedSender string
+}
+type MailStructure struct {
+	ExpectedSender    string
+	FileNameRegExp    string
+	WhoCallsRegExp    string
+	InputNumberRegExp string
+	ParticipantRegExp string
 }
 
 type ErrorLoadConfig struct {
