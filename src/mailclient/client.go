@@ -1,11 +1,10 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"io"
 	"mailclient/config"
 	"mailclient/fetch"
+	"mailclient/save"
 	"os"
 	"time"
 
@@ -119,75 +118,12 @@ func processEmail(msg *imap.Message, config config.MailStructure) error {
 	if ok {
 		fmt.Println("found email to save")
 		fmt.Printf("The structure of email to save: %+v\n", mailToSave)
+		save.Save(&mailToSave)
 	}
 	// Process each message's part
-	/*for {
-		p, err := mr.NextPart()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			fmt.Println(err)
-		}
-		switch h := p.Header.(type) {
-		case mail.TextHeader:
-			// This is the message's text (can be plain-text or HTML)
-			b, _ := ioutil.ReadAll(p.Body)
-			partText := string(b)
-			fmt.Printf("Got text: %s\n", string(b[:100]))
-		case mail.AttachmentHeader:
-			// This is an attachment
-			filename, _ := h.Filename()
-			err := saveFile(p, filename)
-			if err == nil {
-				fmt.Printf("Saved attachment: %s\n", filename)
-			} else {
-				fmt.Printf("Cant save attached file: %s, error: %v\n", filename, err)
-				os.Exit(1)
-			}
-
-		}
-	}*/
 	return nil
 }
 
-func saveFile(messageReader *mail.Part, fileName string) error {
-	// open output file
-	fo, err := os.Create("D:/recordStorage/" + fileName)
-	if err != nil {
-		return err
-	}
-	// close fo on exit and check for its returned error
-	defer func() {
-		if err := fo.Close(); err != nil {
-			panic(err)
-		}
-	}()
-	// make a write buffer
-	w := bufio.NewWriter(fo)
-
-	// make a buffer to keep chunks that are read
-	buf := make([]byte, 1024)
-	for {
-		// read a chunk
-		n, err := messageReader.Body.Read(buf)
-		if err != nil && err != io.EOF {
-			return err
-		}
-		if n == 0 {
-			break
-		}
-
-		// write a chunk
-		if _, err := w.Write(buf[:n]); err != nil {
-			return err
-		}
-	}
-
-	if err = w.Flush(); err != nil {
-		return err
-	}
-	return nil
-}
 func exec(err error) {
 	if err != nil {
 		fmt.Println("Error:", err)

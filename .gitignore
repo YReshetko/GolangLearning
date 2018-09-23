@@ -7,3 +7,4 @@ src/golang.org/
 **/debug
 **/*.exe
 **/configuration*.json
+src/gopkg.in/

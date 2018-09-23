@@ -52,8 +52,11 @@ func (emailReader *emailReader) ReadEmail(reader *mail.Reader, uid uint32) (doma
 			// This is the message's text (can be plain-text or HTML)
 			b, _ := ioutil.ReadAll(p.Body)
 			partText := string(b)
-			if emailReader.matchText(partText) {
+			if !foundTextData && emailReader.matchText(partText) {
 				// TODO extract groups of matched text and save it in structure
+				emailData.WhoCalls = emailReader.extractField(emailReader.regExpMap[WHO_CALLS], partText)
+				emailData.Participant = emailReader.extractField(emailReader.regExpMap[PARTICIPANT], partText)
+				emailData.InputNumber = emailReader.extractField(emailReader.regExpMap[INPUT_NUMBER], partText)
 				foundTextData = true
 			}
 		case mail.AttachmentHeader:
@@ -71,6 +74,9 @@ func (emailReader *emailReader) ReadEmail(reader *mail.Reader, uid uint32) (doma
 	return emailToSave, foundAttachedFile && foundTextData
 }
 
+func (emailReader *emailReader) extractField(regExp *regexp.Regexp, text string) string {
+	return regExp.FindAllStringSubmatch(text, -1)[0][1]
+}
 func (emailReader *emailReader) matchText(text string) bool {
 	ok := true
 	ok1 := ok && emailReader.regExpMap[WHO_CALLS].MatchString(text)
