@@ -2,26 +2,37 @@ package save
 
 import (
 	"bufio"
-	"io"
+	"bytes"
 	"mailclient/domain"
 	"os"
 )
 
 var (
-	dao EmailDao = NewDao("acad", "calls")
+//dao = NewDao("acad", "calls")
 )
 
-func Save(toSave *domain.EmailToSave) {
-
-	err := saveFile(toSave.Reader, toSave.EmailData.RecordFileName)
-	if err == nil {
-		dao.save(toSave.EmailData)
-	}
-
+type s struct {
+	storagePath string
 }
-func saveFile(messageReader io.Reader, fileName string) error {
+
+type EmailSaver interface {
+	Save(toSave *domain.EmailToSave) error
+}
+
+func EmailSaverInstance(storagePath string) EmailSaver {
+	return &s{storagePath}
+}
+
+func (s *s) Save(toSave *domain.EmailToSave) error {
+	err := s.saveFile(toSave.Buffer, toSave.EmailData.RecordFileName)
+	if err == nil {
+		//s.dao.save(toSave.EmailData)
+	}
+	return err
+}
+func (s *s) saveFile(buffer *bytes.Buffer, fileName string) error {
 	// open output file
-	fo, err := os.Create("D:/recordStorage/" + fileName)
+	fo, err := os.Create(s.storagePath + fileName)
 	if err != nil {
 		return err
 	}
@@ -33,24 +44,7 @@ func saveFile(messageReader io.Reader, fileName string) error {
 	}()
 	// make a write buffer
 	w := bufio.NewWriter(fo)
-
-	// make a buffer to keep chunks that are read
-	buf := make([]byte, 1024)
-	for {
-		// read a chunk
-		n, err := messageReader.Read(buf)
-		if err != nil && err != io.EOF {
-			return err
-		}
-		if n == 0 {
-			break
-		}
-
-		// write a chunk
-		if _, err := w.Write(buf[:n]); err != nil {
-			return err
-		}
-	}
+	buffer.WriteTo(w)
 
 	if err = w.Flush(); err != nil {
 		return err

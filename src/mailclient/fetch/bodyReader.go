@@ -1,6 +1,7 @@
 package fetch
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -64,10 +65,11 @@ func (emailReader *emailReader) ReadEmail(reader *mail.Reader, uid uint32) (doma
 			filename, _ := h.Filename()
 			if emailReader.matchFileName(filename) {
 				emailData.RecordFileName = filename
-				emailToSave.Reader = p.Body
+				var buffer bytes.Buffer
+				buffer.ReadFrom(p.Body)
+				emailToSave.Buffer = &buffer
 				foundAttachedFile = true
 			}
-
 		}
 	}
 	emailToSave.EmailData = emailData

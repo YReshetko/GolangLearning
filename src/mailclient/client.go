@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"mailclient/config"
 	"mailclient/fetch"
-	"mailclient/save"
+	"mailclient/service"
 	"os"
 	"time"
 
@@ -15,9 +15,20 @@ import (
 func main() {
 	var config config.Configuration
 	exec(config.Load())
+	emailService := service.NewEmailFetcher(config)
+
+	if err := emailService.Process(); err != nil {
+		fmt.Println(err)
+	}
+}
+
+func main2() {
+	var config config.Configuration
+	exec(config.Load())
 	log(config)
 	client := fetch.NewImapClient(config.HostConfiguration)
 	exec(client.Connect())
+
 	exec(client.Login())
 	defer client.Logout()
 
@@ -118,7 +129,7 @@ func processEmail(msg *imap.Message, config config.MailStructure) error {
 	if ok {
 		fmt.Println("found email to save")
 		fmt.Printf("The structure of email to save: %+v\n", mailToSave)
-		save.Save(&mailToSave)
+		//save.Save(&mailToSave)
 	}
 	// Process each message's part
 	return nil

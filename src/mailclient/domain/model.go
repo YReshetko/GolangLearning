@@ -1,7 +1,7 @@
 package domain
 
 import (
-	"io"
+	"bytes"
 	"time"
 )
 
@@ -18,5 +18,5 @@ type EmailData struct {
 
 type EmailToSave struct {
 	EmailData EmailData
-	Reader    io.Reader
+	Buffer    *bytes.Buffer
 }

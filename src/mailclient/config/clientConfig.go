@@ -11,8 +11,9 @@ const (
 )
 
 type Configuration struct {
-	HostConfiguration HostConfig
-	EmailStructure    MailStructure
+	HostConfiguration    HostConfig
+	EmailStructure       MailStructure
+	StorageConfiguration StorageConfig
 }
 type HostConfig struct {
 	ImapHost       string
@@ -26,6 +27,14 @@ type MailStructure struct {
 	WhoCallsRegExp    string
 	InputNumberRegExp string
 	ParticipantRegExp string
+}
+
+type StorageConfig struct {
+	DbHost               string
+	DbPort               string
+	DbName               string
+	CollectionName       string
+	LocalStorageBasePath string
 }
 
 type ErrorLoadConfig struct {

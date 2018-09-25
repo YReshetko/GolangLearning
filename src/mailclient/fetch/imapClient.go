@@ -104,7 +104,7 @@ func startFetching(messagesOut chan *imap.Message, done chan bool, cli *imapClie
 		select {
 		case <-done:
 			fmt.Println("Can read from done!!!!")
-			break
+			return
 		default:
 			fmt.Println("Start fetching emails")
 			bufferCompleted <- fetchManager.FetchFunction()(fetchManager.NextSequenceSet(), fetchManager.FetchItems(), messages)

@@ -12,15 +12,15 @@ type dbAccess struct {
 	session *mgo.Session
 }
 type DBAccess interface {
-	startSession() bool
-	closeSession() bool
-	getCollection(collectionName string) *mgo.Collection
+	StartSession() bool
+	CloseSession() bool
+	GetCollection(collectionName string) *mgo.Collection
 }
 
 func NewDBAccess(host, port, dbName string) DBAccess {
 	return &dbAccess{host: host, port: port, dbName: dbName}
 }
-func (acccess *dbAccess) startSession() bool {
+func (acccess *dbAccess) StartSession() bool {
 	if acccess.session != nil {
 		return true
 	}
@@ -32,12 +32,12 @@ func (acccess *dbAccess) startSession() bool {
 	acccess.session = session
 	return true
 }
-func (acccess *dbAccess) closeSession() bool {
+func (acccess *dbAccess) CloseSession() bool {
 	acccess.session.Close()
 	acccess.session = nil
 	return true
 }
 
-func (acccess *dbAccess) getCollection(collectionName string) *mgo.Collection {
+func (acccess *dbAccess) GetCollection(collectionName string) *mgo.Collection {
 	return acccess.session.DB(acccess.dbName).C(collectionName)
 }
