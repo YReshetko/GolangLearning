@@ -14,6 +14,7 @@ type emailDao struct {
 type EmailDao interface {
 	Save(data domain.EmailData) error
 	FindByUid(uid uint32) *domain.EmailData
+	FindLatest(count int) []domain.EmailData
 }
 
 func NewDao(collection *mgo.Collection) EmailDao {
@@ -30,4 +31,13 @@ func (dao *emailDao) FindByUid(uid uint32) *domain.EmailData {
 		return nil
 	}
 	return &data
+}
+func (dao *emailDao) FindLatest(count int) []domain.EmailData {
+	/*
+		var results []Person
+		err = c.Find(bson.M{"name": "Ale"}).Sort("-timestamp").All(&results)
+	*/
+	var out []domain.EmailData
+	dao.collection.Find(bson.M{}).Limit(count).All(&out)
+	return out
 }

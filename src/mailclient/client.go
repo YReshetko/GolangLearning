@@ -17,10 +17,7 @@ func main() {
 	fmt.Printf("Config:\n%+v\n", config)
 	emailService := service.NewEmailFetcher(config)
 	go service.Job(emailService, config.SchedulerConfiguration)
-
-	//time.Sleep(2 * time.Minute)
-	//for {} // - hangup of application at imapClient.go -> bufferCompleted <- fetchManager.FetchFunction()(seqset, fetchManager.FetchItems(), messages) on second try
-	select {}
-	//complete := make(chan error)
-	//<-complete
+	go service.RunWebService(config.StorageConfiguration, emailService)
+	complete := make(chan error)
+	<-complete
 }

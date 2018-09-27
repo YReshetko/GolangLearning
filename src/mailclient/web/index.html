@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Welcome page</title>
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="alert alert-primary" role="alert">
+       Check if css works fine
+    </div>
+    <button type="button" class="btn btn-primary">Primary</button>
+
+    {{range .}}
+        ------------------------<br>
+        Date: {{.Date}} <br>
+        CallType: {{.CallType}} <br>
+        WhoCalls: {{.WhoCalls}} <br>
+        InputNumber: {{.InputNumber}} <br>
+        Participant: {{.Participant}} <br>
+        Duration: {{.Duration}} <br>
+        RecordFileName: {{.RecordFileName}} <br>
+    {{end}}
+
+</body>
+</html>
