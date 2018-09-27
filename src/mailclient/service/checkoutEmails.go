@@ -25,6 +25,7 @@ type checkoutEmails struct {
 
 type EmailService interface {
 	Process() error
+	PrintMailboxes()
 }
 
 func NewEmailFetcher(config config.Configuration) EmailService {
@@ -51,8 +52,8 @@ func (saver *checkoutEmails) Process() error {
 	if saver.inProgerss {
 		return checkoutError{"The service is in progress already!"}
 	} else {
+		defer saver.postProcess()
 		if err := saver.preProcess(); err == nil {
-			defer saver.postProcess()
 			uids := saver.findUnprocessedEmailUids()
 			if len(uids) > 0 {
 				time.Sleep(2 * time.Second)
@@ -67,15 +68,16 @@ func (saver *checkoutEmails) Process() error {
 
 func (saver *checkoutEmails) preProcess() error {
 	saver.inProgerss = true
+	if ok := saver.dbAccess.StartSession(); !ok {
+		return checkoutError{"Can't start db session!"}
+	}
 	if err := saver.imapClient.Connect(); err != nil {
 		return err
 	}
 	if err := saver.imapClient.Login(); err != nil {
 		return err
 	}
-	if ok := saver.dbAccess.StartSession(); !ok {
-		return checkoutError{"Can't start db session!"}
-	}
+
 	saver.dao = save.NewDao(saver.dbAccess.GetCollection(saver.collectionName))
 	return nil
 }
@@ -183,4 +185,17 @@ func (saver *checkoutEmails) processEmail(msg *imap.Message) error {
 	}
 	// Process each message's part
 	return nil
+}
+
+func (saver *checkoutEmails) PrintMailboxes() {
+	saver.preProcess()
+	defer saver.postProcess()
+	boxinfos, err := saver.imapClient.Mailboxes()
+	if err != nil {
+		fmt.Println("Loading mail boxes error:", err)
+		os.Exit(1)
+	}
+	for info := range boxinfos {
+		fmt.Println(info)
+	}
 }

@@ -16,7 +16,8 @@ func Experiment1() {
 	fmt.Printf("%q\n", exp1.FindStringSubmatch(str))
 
 	//exp2 := regexp.MustCompile("[0-9]{1,2}[Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec]{1}[0-9]{4}_.*\\.txt")
-	exp2 := regexp.MustCompile("[0-9]{1,2}(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[0-9]{4}_.*\\.txt")
+	//exp2 := regexp.MustCompile("[0-9]{1,2}(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[0-9]{4}_.*\\.txt")
+	exp2 := regexp.MustCompile("([0-9]{1,2})(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)([0-9]{4})_([0-9]{1,2})h([0-9]{1,2})m([0-9]{1,2})s\\.txt")
 	str1 := "3Sep2018_19h24m12s.txt"
 	fmt.Printf("%q\n", str1)
 	fmt.Printf("%q\n", exp2.FindStringSubmatch(str1))

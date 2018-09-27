@@ -107,7 +107,9 @@ func startFetching(messagesOut chan *imap.Message, done chan bool, cli *imapClie
 			return
 		default:
 			fmt.Println("Start fetching emails")
-			bufferCompleted <- fetchManager.FetchFunction()(fetchManager.NextSequenceSet(), fetchManager.FetchItems(), messages)
+			seqset := fetchManager.NextSequenceSet()
+			fmt.Printf("Surrent subseq:%v\n", seqset)
+			bufferCompleted <- fetchManager.FetchFunction()(seqset, fetchManager.FetchItems(), messages)
 			fmt.Println("Complete fetching emails")
 		}
 		if err := <-bufferCompleted; err == nil {
@@ -120,7 +122,6 @@ func startFetching(messagesOut chan *imap.Message, done chan bool, cli *imapClie
 			break
 		}
 	}
-
 }
 
 func redirectMessages(from, to chan *imap.Message) {

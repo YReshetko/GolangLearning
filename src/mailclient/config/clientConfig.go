@@ -11,9 +11,10 @@ const (
 )
 
 type Configuration struct {
-	HostConfiguration    HostConfig
-	EmailStructure       MailStructure
-	StorageConfiguration StorageConfig
+	HostConfiguration      HostConfig
+	EmailStructure         MailStructure
+	StorageConfiguration   StorageConfig
+	SchedulerConfiguration SchedulerConfig
 }
 type HostConfig struct {
 	ImapHost       string
@@ -35,6 +36,12 @@ type StorageConfig struct {
 	DbName               string
 	CollectionName       string
 	LocalStorageBasePath string
+}
+
+type SchedulerConfig struct {
+	Every uint64
+	Term  string
+	At    string
 }
 
 type ErrorLoadConfig struct {
