@@ -60,6 +60,7 @@ func welcomeHandler(w http.ResponseWriter, r *http.Request) {
 func startServer() error {
 	http.Handle("/css/", http.StripPrefix("/css/", http.FileServer(http.Dir("web/css"))))
 	http.Handle("/js/", http.StripPrefix("/js/", http.FileServer(http.Dir("web/js"))))
+	http.Handle("/img/", http.StripPrefix("/img/", http.FileServer(http.Dir("web/img"))))
 	http.HandleFunc("/", welcomeHandler)
 	return http.ListenAndServe(":8080", nil)
 }
