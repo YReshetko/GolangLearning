@@ -12,7 +12,7 @@
 	    "inputNumberRegExp" : "числовую ([абвгдеёжзийклмнопрстуфхцчшщьъыэюя0-9]+),",
 	    "participantRegExp" : "номер ([0-9]+)"
     },
-    "StorageConfig": {
+    "storageConfiguration": {
         "dbHost": "localhost",
 	    "dbPort": "00000",
         "dbName":"some_db_name",

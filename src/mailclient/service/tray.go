@@ -30,9 +30,9 @@ func onReady() {
 		for {
 			select {
 			case <-open.ClickedCh:
-				openBrowser("http://localhost:8080")
+				openWindow("http://localhost:8080")
 			case <-about.ClickedCh:
-
+				openWindow("About.txt")
 			case <-mQuit.ClickedCh:
 				systray.Quit()
 				return
@@ -41,7 +41,7 @@ func onReady() {
 	}()
 }
 
-func openBrowser(url string) bool {
+func openWindow(url string) bool {
 	var args []string
 	switch runtime.GOOS {
 	case "darwin":
