@@ -4,6 +4,7 @@ import (
 	"log"
 	"mailclient/config"
 	"strconv"
+	"time"
 
 	"github.com/emersion/go-imap"
 
@@ -123,6 +124,7 @@ func startFetching(messagesOut chan *imap.Message, done chan bool, cli *imapClie
 		}
 		if err := <-bufferCompleted; err == nil {
 			redirectMessages(messages, messagesOut)
+			time.Sleep(2 * time.Second)
 		} else {
 			log.Println("Error during fetching emails from IMAP server:", err)
 			return

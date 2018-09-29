@@ -3,6 +3,7 @@ package service
 import (
 	"io/ioutil"
 	"log"
+	"os"
 	"os/exec"
 	"runtime"
 
@@ -38,6 +39,7 @@ func onReady() {
 				openWindow("about.txt")
 			case <-mQuit.ClickedCh:
 				systray.Quit()
+				close <- 0
 				return
 			}
 		}
@@ -59,7 +61,9 @@ func openWindow(url string) bool {
 }
 
 func onExit() {
+	log.Println("Closing tray")
 	close <- 1
+	os.Exit(0)
 }
 
 func getIcon(s string) []byte {

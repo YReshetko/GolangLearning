@@ -15,6 +15,7 @@ type fetchManager struct {
 type envelopFetchManager struct {
 	fetchManager
 	messagesNumber uint32
+	firstFetch     bool
 }
 
 type bodyFetchManager struct {
@@ -49,6 +50,7 @@ func NewEnvelopFetchManager(fetch fetchFunc, messagesNumber uint32, buffersize u
 			buffersize,
 		},
 		messagesNumber,
+		true,
 	}
 }
 
@@ -91,7 +93,13 @@ func (manager *envelopFetchManager) recalculateMessageRange() (uint32, uint32) {
 		manager.buffersize = manager.messagesNumber - 2
 		manager.messagesNumber = 1
 	} else {
-		manager.messagesNumber = manager.messagesNumber - manager.buffersize - 1
+		if manager.firstFetch {
+			manager.messagesNumber = manager.messagesNumber - manager.buffersize
+			manager.firstFetch = false
+		} else {
+			manager.messagesNumber = manager.messagesNumber - manager.buffersize - 1
+		}
+
 	}
 	return manager.messagesNumber, manager.messagesNumber + manager.buffersize
 }

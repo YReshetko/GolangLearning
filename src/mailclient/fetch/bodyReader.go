@@ -20,6 +20,7 @@ const (
 	whoCalls         = "who-calls"
 	inputNumber      = "input-number"
 	participant      = "participant"
+	callLength       = "call-length"
 
 	dateTimePattern = "%s-%s-%s %s:%s:%s"
 )
@@ -59,6 +60,7 @@ func NewEmailReader(regexpConfig config.MailStructure) EmailReader {
 	regExpMap[whoCalls] = regexp.MustCompile(regexpConfig.WhoCallsRegExp)
 	regExpMap[inputNumber] = regexp.MustCompile(regexpConfig.InputNumberRegExp)
 	regExpMap[participant] = regexp.MustCompile(regexpConfig.ParticipantRegExp)
+	regExpMap[callLength] = regexp.MustCompile(regexpConfig.CallLengthRegExp)
 	return &emailReader{regExpMap}
 }
 
@@ -84,6 +86,7 @@ func (emailReader *emailReader) ReadEmail(reader *mail.Reader, uid uint32) (doma
 				emailData.WhoCalls = extractField(emailReader.regExpMap[whoCalls], partText)
 				emailData.Participant = extractField(emailReader.regExpMap[participant], partText)
 				emailData.InputNumber = extractField(emailReader.regExpMap[inputNumber], partText)
+				emailData.Duration = extractField(emailReader.regExpMap[callLength], partText)
 				foundTextData = true
 			}
 		case mail.AttachmentHeader:

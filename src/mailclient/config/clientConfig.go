@@ -28,6 +28,7 @@ type MailStructure struct {
 	WhoCallsRegExp    string
 	InputNumberRegExp string
 	ParticipantRegExp string
+	CallLengthRegExp  string
 }
 
 type StorageConfig struct {

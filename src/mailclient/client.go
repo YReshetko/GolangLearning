@@ -9,7 +9,7 @@ import (
 )
 
 //Run to hide windows console of the application
-//go build -ldflags "-H windowsgui" -v -o client.exe client.go
+//go build -ldflags "-H windowsgui" -v -o EMFetcher.exe client.go
 func main() {
 	//defer profile.Start(profile.MemProfile).Stop()
 	close := initLogging()
