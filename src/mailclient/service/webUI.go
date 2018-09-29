@@ -44,10 +44,6 @@ func loadFile(title string) ([]byte, error) {
 }
 
 func welcomeHandler(w http.ResponseWriter, r *http.Request) {
-	/*indexPage, err := loadFile("web/index.html")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}*/
 	latestRecords := dao.FindLatest(10)
 	renderEmailData(w, latestRecords)
 }
@@ -61,13 +57,9 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("Serch for: date1:%v; date2:%v, type:%v\n", from, to, callType)
 		records := dao.FindByDateRange(from, to)
 		renderEmailData(w, records)
-		return
+	} else {
+		http.Redirect(w, r, "/", http.StatusFound)
 	}
-	if callType != "all" {
-
-	}
-
-	welcomeHandler(w, r)
 }
 func renderEmailData(w http.ResponseWriter, emailData []domain.EmailData) {
 	t, _ := template.ParseFiles("web/index.html")
