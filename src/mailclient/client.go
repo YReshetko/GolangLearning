@@ -8,8 +8,11 @@ import (
 	"os"
 )
 
+//Run to hide windows console of the application
+//go build -ldflags "-H windowsgui" -v -o client.exe client.go
 func main() {
 	//defer profile.Start(profile.MemProfile).Stop()
+	complete := make(chan int)
 	var config config.Configuration
 
 	if err := config.Load(); err != nil {
@@ -26,7 +29,7 @@ func main() {
 	emailService := service.NewEmailFetcher(config, dao)
 	go service.Job(emailService, config.SchedulerConfiguration)
 	go service.RunWebService(config.StorageConfiguration, emailService, dao)
+	go service.StartAppInTray(complete)
 
-	complete := make(chan error)
 	<-complete
 }
