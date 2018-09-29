@@ -15,7 +15,6 @@ import (
 type checkoutEmails struct {
 	imapClient     fetch.ImapClient
 	emailReader    fetch.EmailReader
-	dbAccess       save.DBAccess
 	emailSaver     save.EmailSaver
 	dao            save.EmailDao
 	inProgerss     bool
@@ -28,11 +27,11 @@ type EmailService interface {
 	PrintMailboxes()
 }
 
-func NewEmailFetcher(config config.Configuration) EmailService {
+func NewEmailFetcher(config config.Configuration, dao save.EmailDao) EmailService {
 	return &checkoutEmails{
 		imapClient:     fetch.NewImapClient(config.HostConfiguration),
 		emailReader:    fetch.NewEmailReader(config.EmailStructure),
-		dbAccess:       save.NewDBAccess(config.StorageConfiguration.DbHost, config.StorageConfiguration.DbPort, config.StorageConfiguration.DbName),
+		dao:            dao,
 		emailSaver:     save.EmailSaverInstance(config.StorageConfiguration.LocalStorageBasePath),
 		inProgerss:     false,
 		collectionName: config.StorageConfiguration.CollectionName,
@@ -68,25 +67,17 @@ func (saver *checkoutEmails) Process() error {
 
 func (saver *checkoutEmails) preProcess() error {
 	saver.inProgerss = true
-	if ok := saver.dbAccess.StartSession(); !ok {
-		return checkoutError{"Can't start db session!"}
-	}
 	if err := saver.imapClient.Connect(); err != nil {
 		return err
 	}
 	if err := saver.imapClient.Login(); err != nil {
 		return err
 	}
-
-	saver.dao = save.NewDao(saver.dbAccess.GetCollection(saver.collectionName))
 	return nil
 }
 func (saver *checkoutEmails) postProcess() error {
 	saver.inProgerss = false
 	saver.dao = nil
-	if ok := saver.dbAccess.CloseSession(); !ok {
-		return checkoutError{"Can't close db session!"}
-	}
 	if err := saver.imapClient.Logout(); err != nil {
 		return err
 	}

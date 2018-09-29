@@ -2,6 +2,7 @@ package save
 
 import (
 	"mailclient/domain"
+	"time"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -15,6 +16,7 @@ type EmailDao interface {
 	Save(data domain.EmailData) error
 	FindByUid(uid uint32) *domain.EmailData
 	FindLatest(count int) []domain.EmailData
+	FindByDateRange(from, to time.Time) []domain.EmailData
 }
 
 func NewDao(collection *mgo.Collection) EmailDao {
@@ -32,12 +34,18 @@ func (dao *emailDao) FindByUid(uid uint32) *domain.EmailData {
 	}
 	return &data
 }
+
+func (dao *emailDao) FindByDateRange(from, to time.Time) []domain.EmailData {
+	var out []domain.EmailData
+	dao.collection.Find(bson.M{"date": bson.M{"$gte": from, "$lte": to}}).Sort("date").All(&out)
+	return out
+}
 func (dao *emailDao) FindLatest(count int) []domain.EmailData {
 	/*
 		var results []Person
 		err = c.Find(bson.M{"name": "Ale"}).Sort("-timestamp").All(&results)
 	*/
 	var out []domain.EmailData
-	dao.collection.Find(bson.M{}).Limit(count).All(&out)
+	dao.collection.Find(nil).Sort("date").Limit(count).All(&out)
 	return out
 }
