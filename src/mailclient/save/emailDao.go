@@ -12,6 +12,9 @@ type emailDao struct {
 	collection *mgo.Collection
 }
 
+/*
+EmailDao - Data access to emails DB
+*/
 type EmailDao interface {
 	Save(data domain.EmailData) error
 	FindByUid(uid uint32) *domain.EmailData
@@ -19,6 +22,9 @@ type EmailDao interface {
 	FindByDateRange(from, to time.Time) []domain.EmailData
 }
 
+/*
+NewDao - create new DAO
+*/
 func NewDao(collection *mgo.Collection) EmailDao {
 	return &emailDao{collection}
 }

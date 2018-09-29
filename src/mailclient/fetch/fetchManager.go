@@ -1,19 +1,9 @@
 package fetch
 
 import (
-	"fmt"
-
 	imap "github.com/emersion/go-imap"
 )
 
-/*
-Fetch Items example
-section := &imap.BodySectionName{}
-fetchItems := []imap.FetchItem{imap.FetchEnvelope, imap.FetchUid}
-fetchItems := []imap.FetchItem{imap.FetchEnvelope, section.FetchItem(), imap.FetchUid}
-fetchItems := []imap.FetchItem{imap.FetchEnvelope}
-fetchItems := []imap.FetchItem{section.FetchItem()}
-*/
 type fetchFunc func(*imap.SeqSet, []imap.FetchItem, chan *imap.Message) error
 
 type fetchManager struct {
@@ -33,6 +23,14 @@ type bodyFetchManager struct {
 	currentIndex int
 }
 
+/*
+FetchManager - controles methods and parameters of email fetching
+	FetchFunction - fetch function from go-imap client (Fetch(), FetchUid())
+	FetchItems - Array of fetch items Uid, Envelop, Body, etc
+	BufferSize - size of the buffer for fetching several emails
+	NextSequenceSet - imap.SeqSet of next emails portion
+	HasNext - true if we can fetch more emails
+*/
 type FetchManager interface {
 	FetchFunction() fetchFunc
 	FetchItems() []imap.FetchItem
@@ -41,6 +39,9 @@ type FetchManager interface {
 	HasNext() bool
 }
 
+/*
+NewEnvelopFetchManager - creates fetch manager for email envelop fetching
+*/
 func NewEnvelopFetchManager(fetch fetchFunc, messagesNumber uint32, buffersize uint32) FetchManager {
 	return &envelopFetchManager{
 		fetchManager{
@@ -51,6 +52,9 @@ func NewEnvelopFetchManager(fetch fetchFunc, messagesNumber uint32, buffersize u
 	}
 }
 
+/*
+NewBodyFetchManager - creates fetch manager for email body fetching
+*/
 func NewBodyFetchManager(fetch fetchFunc, uids []uint32, buffersize uint32) FetchManager {
 	section := &imap.BodySectionName{}
 	return &bodyFetchManager{
@@ -107,8 +111,6 @@ func (manager *bodyFetchManager) NextSequenceSet() *imap.SeqSet {
 
 	seqset := new(imap.SeqSet)
 	seqset.AddNum(slice...)
-	fmt.Println("Next sequence set: ", slice)
-	fmt.Printf("Seqset: %+v\n", seqset)
 	return seqset
 }
 func (manager *bodyFetchManager) HasNext() bool {
@@ -116,7 +118,6 @@ func (manager *bodyFetchManager) HasNext() bool {
 	newIndex := currentIndex + int(manager.buffersize)
 	if newIndex >= len(manager.uids) {
 		manager.buffersize = uint32(len(manager.uids)) - uint32(currentIndex)
-		fmt.Println("Recalculated buffer size:", manager.buffersize)
 	}
 	return manager.currentIndex < len(manager.uids)
 }

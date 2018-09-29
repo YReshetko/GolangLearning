@@ -6,5 +6,6 @@ src/github.com/
 src/golang.org/
 **/debug
 **/*.exe
+**/*.log
 **/configuration*.json
 src/gopkg.in/

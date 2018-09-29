@@ -1,14 +1,18 @@
 package service
 
 import (
-	"fmt"
+	"log"
 	"mailclient/config"
+	"time"
 
 	"github.com/jasonlvhit/gocron"
 )
 
 var executeVar EmailService
 
+/*
+Job - starts scheduler to fetch emails
+*/
 func Job(emailService EmailService, config config.SchedulerConfig) {
 	job := gocron.Every(config.Every)
 	executeVar = emailService
@@ -49,8 +53,9 @@ func Job(emailService EmailService, config config.SchedulerConfig) {
 
 func run() {
 	go func() {
+		log.Println("Running fetch processing by scheduler at:", time.Now())
 		if err := executeVar.Process(); err != nil {
-			fmt.Println(err)
+			log.Println("Error during running fetch process by scheduler:", err)
 		}
 	}()
 }

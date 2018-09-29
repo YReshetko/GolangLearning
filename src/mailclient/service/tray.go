@@ -1,8 +1,8 @@
 package service
 
 import (
-	"fmt"
 	"io/ioutil"
+	"log"
 	"os/exec"
 	"runtime"
 
@@ -13,6 +13,9 @@ var (
 	close chan int
 )
 
+/*
+StartAppInTray - starts application in tray
+*/
 func StartAppInTray(blockingChan chan int) {
 	close = blockingChan
 	systray.Run(onReady, onExit)
@@ -32,7 +35,7 @@ func onReady() {
 			case <-open.ClickedCh:
 				openWindow("http://localhost:8080")
 			case <-about.ClickedCh:
-				openWindow("About.txt")
+				openWindow("about.txt")
 			case <-mQuit.ClickedCh:
 				systray.Quit()
 				return
@@ -62,7 +65,7 @@ func onExit() {
 func getIcon(s string) []byte {
 	b, err := ioutil.ReadFile(s)
 	if err != nil {
-		fmt.Print(err)
+		log.Println("Error during loading tray icon:", err)
 	}
 	return b
 }

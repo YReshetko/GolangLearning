@@ -1,9 +1,8 @@
 package service
 
 import (
-	"fmt"
 	"html/template"
-	"io/ioutil"
+	"log"
 	"mailclient/config"
 	"mailclient/domain"
 	"mailclient/save"
@@ -13,34 +12,27 @@ import (
 )
 
 var (
-	dbAccess     save.DBAccess
 	emailService EmailService
 	dao          save.EmailDao
 	fileStorage  string
 )
 
+/*
+RunWebService - run web service
+*/
 func RunWebService(config config.StorageConfig, service EmailService, emailDao save.EmailDao) {
 	emailService = service
-	dbAccess = save.NewDBAccess(config.DbHost, config.DbPort, config.DbName)
 	dao = emailDao
 	fileStorage = config.LocalStorageBasePath
 	for {
+		log.Println("Starting web service")
 		err := startServer()
 		if err != nil {
-			fmt.Println("Web service is crashed with error:", err)
-			fmt.Println("Restarting web service in 1 minute")
+			log.Println("Web service is crashed with error:", err)
+			log.Println("Restarting web service in 1 minute")
 			time.Sleep(time.Minute)
 		}
 	}
-}
-
-func loadFile(title string) ([]byte, error) {
-	filename := title
-	body, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-	return body, nil
 }
 
 func welcomeHandler(w http.ResponseWriter, r *http.Request) {
@@ -51,10 +43,9 @@ func welcomeHandler(w http.ResponseWriter, r *http.Request) {
 func searchHandler(w http.ResponseWriter, r *http.Request) {
 	date1 := r.FormValue("date1")
 	date2 := r.FormValue("date2")
-	callType := r.FormValue("callType")
 	if date1 != "" || date2 != "" {
 		from, to := util.GetDateRange(date1, date2)
-		fmt.Printf("Serch for: date1:%v; date2:%v, type:%v\n", from, to, callType)
+		log.Printf("Serch for: date1:%v; date2:%v\n", from, to)
 		records := dao.FindByDateRange(from, to)
 		renderEmailData(w, records)
 	} else {

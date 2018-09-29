@@ -1,7 +1,6 @@
 package fetch
 
 import (
-	"fmt"
 	"log"
 	"mailclient/config"
 	"strconv"
@@ -11,34 +10,45 @@ import (
 	"github.com/emersion/go-imap/client"
 )
 
+const (
+	defaultEmailEnvelopBufferSize = uint32(100)
+	defaultEmailBodyBufferSize    = uint32(10)
+)
+
 type imapClient struct {
 	config config.HostConfig
 	client *client.Client
 }
 
-func NewImapClient(config config.HostConfig) ImapClient {
-	return &imapClient{config: config}
-}
-
+/*
+ImapClient - access to IMAP server
+*/
 type ImapClient interface {
 	Connect() error
 	Login() error
 	Logout() error
 	Mailboxes() (chan *imap.MailboxInfo, error)
-	GetMessageChannel(box string, done chan bool) (chan *imap.Message, error)
+	GetMessageEnvelopChannel(box string, done chan bool) (chan *imap.Message, error)
 	GetMessageBodyChannel(box string, uids []uint32) (chan *imap.Message, error)
+}
+
+/*
+NewImapClient - creates new ImapClient
+*/
+func NewImapClient(config config.HostConfig) ImapClient {
+	return &imapClient{config: config}
 }
 
 func (cli *imapClient) Connect() error {
 	server := cli.config.ImapHost + ":" + strconv.Itoa(cli.config.ImapPort)
-	fmt.Printf("Server: %s", server)
+	log.Printf("Connectiong to IMAP server: %s\n", server)
 	c, err := client.DialTLS(server, nil)
 	cli.client = c
 	if err != nil {
-		log.Fatal(err)
+		log.Println("Error during connecting to IMAP server", err)
 		return err
 	}
-	log.Println("Connected")
+	log.Println("Connected to IMAP server")
 	return nil
 }
 
@@ -46,13 +56,15 @@ func (cli *imapClient) Login() error {
 	if err := cli.client.Login(cli.config.ClientEmail, cli.config.ClientPassword); err != nil {
 		return err
 	}
-	log.Println("Logged")
+	log.Println("Logged on IMAP server")
 	return nil
 }
 func (cli *imapClient) Logout() error {
 	if cli.client != nil {
 		cli.client.Logout()
-		log.Println("Logout")
+		log.Println("Logout on IMAP server")
+	} else {
+		log.Println("Logouting when the client does not exist")
 	}
 	return nil
 }
@@ -64,62 +76,56 @@ func (cli *imapClient) Mailboxes() (chan *imap.MailboxInfo, error) {
 		done <- cli.client.List("", "*", mailboxes)
 	}()
 	if err := <-done; err != nil {
-		log.Fatal(err)
+		log.Println("Error during fetching mailboxes:", err)
 		return nil, err
 	}
 	return mailboxes, nil
 }
 
-func (cli *imapClient) GetMessageChannel(box string, done chan bool) (chan *imap.Message, error) {
+func (cli *imapClient) GetMessageEnvelopChannel(box string, done chan bool) (chan *imap.Message, error) {
 	messagesNumber, err := getNumMessagesForBox(box, cli.client)
 	if err != nil {
-		log.Fatal(err)
+		log.Println("Error retrieving number of messages from IMAP server:", err)
 		return nil, err
 	}
-	bufferSize := uint32(100)
+	bufferSize := defaultEmailEnvelopBufferSize
 	messagesOut := make(chan *imap.Message, bufferSize/2)
-	fmt.Printf("Initial messages number: %v\n", messagesNumber)
+	log.Printf("Initial messages number: %v\n", messagesNumber)
 	go startFetching(messagesOut, done, cli, NewEnvelopFetchManager(cli.client.Fetch, messagesNumber, bufferSize))
 	return messagesOut, nil
 }
 
 func (cli *imapClient) GetMessageBodyChannel(box string, uids []uint32) (chan *imap.Message, error) {
-	bufferSize := uint32(2)
+	bufferSize := defaultEmailBodyBufferSize
 	messagesOut := make(chan *imap.Message, bufferSize/2)
-	fmt.Printf("Initial uids number: %v\n", len(uids))
+	log.Printf("Initial uids number: %v\n", len(uids))
 	go startFetching(messagesOut, nil, cli, NewBodyFetchManager(cli.client.UidFetch, uids, bufferSize))
 	return messagesOut, nil
 }
 
 func startFetching(messagesOut chan *imap.Message, done chan bool, cli *imapClient, fetchManager FetchManager) {
 	defer func() {
-		fmt.Println("Closing output channel!!!!")
+		log.Println("Closing major output channel")
 		close(messagesOut)
 	}()
 	bufferCompleted := make(chan error, 1)
 	for fetchManager.HasNext() {
 		chanSize := fetchManager.BufferSize() + 1
 		messages := make(chan *imap.Message, chanSize)
-		fmt.Println("Messages chan size", chanSize)
 		select {
 		case <-done:
-			fmt.Println("Can read from done!!!!")
 			return
 		default:
-			fmt.Println("Start fetching emails")
 			seqset := fetchManager.NextSequenceSet()
-			fmt.Printf("Surrent subseq:%v\n", seqset)
+			log.Printf("Current subseq:%v, start fetching new portion\n", seqset)
 			bufferCompleted <- fetchManager.FetchFunction()(seqset, fetchManager.FetchItems(), messages)
-			fmt.Println("Complete fetching emails")
+			log.Println("Complete fetching emails")
 		}
 		if err := <-bufferCompleted; err == nil {
-			fmt.Println("Start redirecting")
 			redirectMessages(messages, messagesOut)
-			fmt.Println("Complete redirecting")
 		} else {
-			fmt.Println("Got an error")
-			log.Fatal(err)
-			break
+			log.Println("Error during fetching emails from IMAP server:", err)
+			return
 		}
 	}
 }
@@ -133,7 +139,6 @@ func redirectMessages(from, to chan *imap.Message) {
 func getNumMessagesForBox(box string, client *client.Client) (uint32, error) {
 	mbox, err := client.Select(box, false)
 	if err != nil {
-		log.Fatal(err)
 		return 0, err
 	}
 	return mbox.Messages, nil

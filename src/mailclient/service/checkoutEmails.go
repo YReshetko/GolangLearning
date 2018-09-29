@@ -2,15 +2,17 @@ package service
 
 import (
 	"fmt"
+	"log"
 	"mailclient/config"
 	"mailclient/fetch"
 	"mailclient/save"
-	"os"
 	"time"
 
 	imap "github.com/emersion/go-imap"
 	"github.com/emersion/go-message/mail"
 )
+
+const inboxName = "INBOX"
 
 type checkoutEmails struct {
 	imapClient     fetch.ImapClient
@@ -22,17 +24,23 @@ type checkoutEmails struct {
 	expectedSender string
 }
 
+/*
+EmailService - runs full email fetching saving into DB and local storage
+*/
 type EmailService interface {
 	Process() error
 	PrintMailboxes()
 }
 
+/*
+NewEmailFetcher - create new email fetcher by checkoutEmails impl
+*/
 func NewEmailFetcher(config config.Configuration, dao save.EmailDao) EmailService {
 	return &checkoutEmails{
 		imapClient:     fetch.NewImapClient(config.HostConfiguration),
 		emailReader:    fetch.NewEmailReader(config.EmailStructure),
 		dao:            dao,
-		emailSaver:     save.EmailSaverInstance(config.StorageConfiguration.LocalStorageBasePath),
+		emailSaver:     save.NewEmailSaver(config.StorageConfiguration.LocalStorageBasePath),
 		inProgerss:     false,
 		collectionName: config.StorageConfiguration.CollectionName,
 		expectedSender: config.EmailStructure.ExpectedSender,
@@ -50,17 +58,17 @@ func (err checkoutError) Error() string {
 func (saver *checkoutEmails) Process() error {
 	if saver.inProgerss {
 		return checkoutError{"The service is in progress already!"}
-	} else {
-		defer saver.postProcess()
-		if err := saver.preProcess(); err == nil {
-			uids := saver.findUnprocessedEmailUids()
-			if len(uids) > 0 {
-				time.Sleep(2 * time.Second)
-				saver.processUids(uids)
-			}
-		} else {
-			return err
+	}
+	defer saver.postProcess()
+	if err := saver.preProcess(); err == nil {
+		uids := saver.findUnprocessedEmailUids()
+		log.Println("Found unprocessed UIDs:", uids)
+		if len(uids) > 0 {
+			time.Sleep(2 * time.Second)
+			saver.processUids(uids)
 		}
+	} else {
+		return err
 	}
 	return nil
 }
@@ -86,10 +94,11 @@ func (saver *checkoutEmails) postProcess() error {
 
 func (saver *checkoutEmails) findUnprocessedEmailUids() []uint32 {
 	done := make(chan bool, 2)
-	messagesChannel, err := saver.imapClient.GetMessageChannel("INBOX", done)
+	messagesChannel, err := saver.imapClient.GetMessageEnvelopChannel(inboxName, done)
 	if err != nil {
-		fmt.Println("Loading mail channel error:", err)
-		os.Exit(1)
+		done <- false
+		log.Println("Error during retrieving channel for UID fetching:", err)
+		return make([]uint32, 0)
 	}
 
 	count := 0
@@ -103,16 +112,9 @@ func (saver *checkoutEmails) findUnprocessedEmailUids() []uint32 {
 					isComplated = true
 					done <- true
 				}
-
 			} else {
 				uidsToProcess = append(uidsToProcess, msg.Uid)
 			}
-
-		}
-		// TODO Remove as redundand
-		if count > 100 && !isComplated {
-			done <- true
-			break
 		}
 	}
 	return uidsToProcess
@@ -124,55 +126,69 @@ func (saver *checkoutEmails) needsProcessing(msg *imap.Message) bool {
 		from = msg.Envelope.From[0].MailboxName
 	}
 	if from == saver.expectedSender {
-		fmt.Println("Found expected email:")
-		fmt.Printf("Email sender: %+v\n", msg.Envelope)
-		fmt.Printf("Email uid: %+v\n", msg.Uid)
-		fmt.Printf("From: %+v\n", msg.Envelope.From[0].MailboxName)
-		fmt.Println("Mail subject:", msg.Envelope.Subject)
+		log.Printf("Found possible email for fetching: %+v\n", msg)
 		return true
 	}
 	return false
 }
 func (saver *checkoutEmails) uidProcessedBefore(uid uint32) bool {
 	if data := saver.dao.FindByUid(uid); data != nil {
+		log.Println("Found UID processed before:", uid)
 		return true
 	}
 	return false
 }
 
 func (saver *checkoutEmails) processUids(uids []uint32) {
-	messagesChannel, err := saver.imapClient.GetMessageBodyChannel("INBOX", uids)
+	messagesChannel, err := saver.imapClient.GetMessageBodyChannel(inboxName, uids)
 	if err != nil {
-		fmt.Println("Loading mail channel error:", err)
-		os.Exit(1)
+		log.Println("Error during retrieving channel for fetching email content:", err)
+		return
 	}
+	metError := false
+	count := uint32(0)
 	for msg := range messagesChannel {
-		saver.processEmail(msg)
+		if !metError {
+			if err := saver.processEmail(msg); err != nil {
+				log.Printf("Met error during email processing, so skiping further processing")
+				metError = true
+			} else {
+				count++
+			}
+			if count%100 == 0 {
+				log.Println("Saved emails count: ", count)
+			}
+		}
 	}
+	log.Printf("Finally processed %v emails at: %v\n", count, time.Now())
 }
 
 func (saver *checkoutEmails) processEmail(msg *imap.Message) error {
 	section := &imap.BodySectionName{}
 	r := msg.GetBody(section)
 	if r == nil {
-		fmt.Println("Server didn't returned message body")
+		log.Printf("Server didn't returned message body: %+v\n", msg)
 		return nil
 	}
-
 	// Create a new mail reader
 	mr, err := mail.CreateReader(r)
 	if err != nil {
-		fmt.Println(err)
-		return nil
+		log.Printf("Cant create email reader for: %+v, due to %v\n", msg, err)
+		return err
 	}
-	fmt.Println("Create email reader")
-	fmt.Println("Start reading email")
 	mailToSave, ok := saver.emailReader.ReadEmail(mr, msg.Uid)
 	if ok {
-		fmt.Println("found email to save")
-		fmt.Printf("The structure of email to save: %+v\n", mailToSave)
-		saver.emailSaver.Save(&mailToSave)
-		saver.dao.Save(mailToSave.EmailData)
+		log.Println("Saving email UID:", msg.Uid)
+		err := saver.emailSaver.Save(&mailToSave)
+		if err != nil {
+			log.Println("Error saving attached file:", err)
+			return err
+		}
+		err = saver.dao.Save(mailToSave.EmailData)
+		if err != nil {
+			log.Println("Error saving email info:", err)
+			return err
+		}
 	}
 	// Process each message's part
 	return nil
@@ -183,10 +199,10 @@ func (saver *checkoutEmails) PrintMailboxes() {
 	defer saver.postProcess()
 	boxinfos, err := saver.imapClient.Mailboxes()
 	if err != nil {
-		fmt.Println("Loading mail boxes error:", err)
-		os.Exit(1)
+		log.Println("Loading mail boxes error:", err)
+		return
 	}
 	for info := range boxinfos {
-		fmt.Println(info)
+		log.Println(info)
 	}
 }

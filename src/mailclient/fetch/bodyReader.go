@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"mailclient/config"
 	"mailclient/domain"
 	"regexp"
@@ -15,10 +16,12 @@ import (
 )
 
 const (
-	ATTACHED_FILE_NAME = "attached-file-name"
-	WHO_CALLS          = "who-calls"
-	INPUT_NUMBER       = "input-number"
-	PARTICIPANT        = "participant"
+	attachedFileName = "attached-file-name"
+	whoCalls         = "who-calls"
+	inputNumber      = "input-number"
+	participant      = "participant"
+
+	dateTimePattern = "%s-%s-%s %s:%s:%s"
 )
 
 var monthes = map[string]string{
@@ -40,16 +43,22 @@ type emailReader struct {
 	regExpMap map[string]*regexp.Regexp
 }
 
+/*
+EmailReader - read particular email, match to ecpected patterns and returns EmailToSave structure
+*/
 type EmailReader interface {
 	ReadEmail(reader *mail.Reader, uid uint32) (domain.EmailToSave, bool)
 }
 
+/*
+NewEmailReader - creates new EmailReader entity
+*/
 func NewEmailReader(regexpConfig config.MailStructure) EmailReader {
 	regExpMap := make(map[string]*regexp.Regexp)
-	regExpMap[ATTACHED_FILE_NAME] = regexp.MustCompile(regexpConfig.FileNameRegExp)
-	regExpMap[WHO_CALLS] = regexp.MustCompile(regexpConfig.WhoCallsRegExp)
-	regExpMap[INPUT_NUMBER] = regexp.MustCompile(regexpConfig.InputNumberRegExp)
-	regExpMap[PARTICIPANT] = regexp.MustCompile(regexpConfig.ParticipantRegExp)
+	regExpMap[attachedFileName] = regexp.MustCompile(regexpConfig.FileNameRegExp)
+	regExpMap[whoCalls] = regexp.MustCompile(regexpConfig.WhoCallsRegExp)
+	regExpMap[inputNumber] = regexp.MustCompile(regexpConfig.InputNumberRegExp)
+	regExpMap[participant] = regexp.MustCompile(regexpConfig.ParticipantRegExp)
 	return &emailReader{regExpMap}
 }
 
@@ -63,7 +72,7 @@ func (emailReader *emailReader) ReadEmail(reader *mail.Reader, uid uint32) (doma
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			fmt.Println(err)
+			log.Println("Error reading next part of email:", err)
 		}
 		switch h := p.Header.(type) {
 		case mail.TextHeader:
@@ -72,9 +81,9 @@ func (emailReader *emailReader) ReadEmail(reader *mail.Reader, uid uint32) (doma
 			partText := string(b)
 			if !foundTextData && emailReader.matchText(partText) {
 				// TODO extract groups of matched text and save it in structure
-				emailData.WhoCalls = extractField(emailReader.regExpMap[WHO_CALLS], partText)
-				emailData.Participant = extractField(emailReader.regExpMap[PARTICIPANT], partText)
-				emailData.InputNumber = extractField(emailReader.regExpMap[INPUT_NUMBER], partText)
+				emailData.WhoCalls = extractField(emailReader.regExpMap[whoCalls], partText)
+				emailData.Participant = extractField(emailReader.regExpMap[participant], partText)
+				emailData.InputNumber = extractField(emailReader.regExpMap[inputNumber], partText)
 				foundTextData = true
 			}
 		case mail.AttachmentHeader:
@@ -82,11 +91,15 @@ func (emailReader *emailReader) ReadEmail(reader *mail.Reader, uid uint32) (doma
 			filename, _ := h.Filename()
 			if !foundAttachedFile && emailReader.matchFileName(filename) {
 				emailData.RecordFileName = filename
-				emailData.Date = getDateByFileName(emailReader.regExpMap[ATTACHED_FILE_NAME], filename)
+				emailData.Date = getDateByFileName(emailReader.regExpMap[attachedFileName], filename)
 				var buffer bytes.Buffer
-				buffer.ReadFrom(p.Body)
-				emailToSave.Buffer = &buffer
-				foundAttachedFile = true
+				_, err := buffer.ReadFrom(p.Body)
+				if err != nil {
+					log.Printf("Error buffering attached file:%s; error:%v\n", filename, err)
+				} else {
+					emailToSave.Buffer = &buffer
+					foundAttachedFile = true
+				}
 			}
 		}
 	}
@@ -104,11 +117,12 @@ func getDateByFileName(regExp *regexp.Regexp, filename string) time.Time {
 		hours := addLeadingZerroz(slice[4], 2)
 		minutes := addLeadingZerroz(slice[5], 2)
 		seconds := addLeadingZerroz(slice[6], 2)
-		time, err := time.Parse(timeutil.SQLTimestamp, fmt.Sprintf("%s-%s-%s %s:%s:%s", year, month, day, hours, minutes, seconds))
+		parsedTime, err := time.Parse(timeutil.SQLTimestamp, fmt.Sprintf(dateTimePattern, year, month, day, hours, minutes, seconds))
 		if err != nil {
-			fmt.Println("Error happened during file day-time parsing:", err)
+			log.Printf("Error happened during file day-time parsing: %v; So, returning current time\n", err)
+			return time.Now()
 		}
-		return time
+		return parsedTime
 	}
 	return time.Now()
 }
@@ -127,14 +141,11 @@ func extractField(regExp *regexp.Regexp, text string) string {
 	return regExp.FindAllStringSubmatch(text, -1)[0][1]
 }
 func (emailReader *emailReader) matchText(text string) bool {
-	ok := true
-	ok1 := ok && emailReader.regExpMap[WHO_CALLS].MatchString(text)
-	ok2 := ok && emailReader.regExpMap[INPUT_NUMBER].MatchString(text)
-	ok3 := ok && emailReader.regExpMap[PARTICIPANT].MatchString(text)
-	fmt.Printf("Email text: %v\n", text)
-	fmt.Printf("Match value: %v, %v, %v\n", ok1, ok2, ok3)
-	return ok1 && ok2 && ok3
+	ok := emailReader.regExpMap[whoCalls].MatchString(text)
+	ok = ok && emailReader.regExpMap[inputNumber].MatchString(text)
+	ok = ok && emailReader.regExpMap[participant].MatchString(text)
+	return ok
 }
 func (emailReader *emailReader) matchFileName(text string) bool {
-	return emailReader.regExpMap[ATTACHED_FILE_NAME].MatchString(text)
+	return emailReader.regExpMap[attachedFileName].MatchString(text)
 }
