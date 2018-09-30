@@ -86,7 +86,6 @@ func (saver *checkoutEmails) preProcess() error {
 }
 func (saver *checkoutEmails) postProcess() error {
 	saver.inProgerss = false
-	saver.dao = nil
 	if err := saver.imapClient.Logout(); err != nil {
 		return err
 	}
@@ -138,7 +137,13 @@ func (saver *checkoutEmails) needsProcessing(msg *imap.Message) bool {
 	return false
 }
 func (saver *checkoutEmails) uidProcessedBefore(uid uint32) bool {
-	if data := saver.dao.FindByUid(uid); data != nil {
+	data, err := saver.dao.FindByUid(uid)
+	if err != nil {
+		log.Printf("Error during retrieving UID %v, error: %v\n", uid, err)
+		// Returning true to stop general processing
+		return true
+	}
+	if data != nil {
 		log.Println("Found UID processed before:", uid)
 		return true
 	}

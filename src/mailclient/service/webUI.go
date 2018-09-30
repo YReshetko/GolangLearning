@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	urlRoot   = "/"
-	urlSearch = "/search"
+	urlRoot    = "/"
+	urlSearch  = "/search"
+	urlProcess = "/process"
 
 	urlStaticCSS          = "/css/"
 	urlStaticJS           = "/js/"
@@ -27,12 +28,14 @@ const (
 	pathStaticImage = pathStaticRoot + "/img"
 
 	pathPageEmailViewer   = pathStaticRoot + "/index.html"
+	pathPageError         = pathStaticRoot + "/error.html"
 	pathTemplatesRoot     = pathStaticRoot + "/tmp"
 	pathHeaderTemplate    = pathTemplatesRoot + "/header.html"
 	pathSearchTemplate    = pathTemplatesRoot + "/search.html"
 	pathEmailViewTemplate = pathTemplatesRoot + "/emailoutput.html"
 
 	templateIndex = "index"
+	templateError = "error"
 )
 
 var (
@@ -76,6 +79,18 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, urlRoot, http.StatusFound)
 	}
 }
+func processHandler(w http.ResponseWriter, r *http.Request) {
+	if err := emailService.Process(); err != nil {
+		renderErrorPage(w, err)
+	} else {
+		http.Redirect(w, r, urlRoot, http.StatusFound)
+	}
+}
+
+func renderErrorPage(w http.ResponseWriter, err error) {
+	t, _ := template.ParseFiles(pathPageError, pathHeaderTemplate)
+	t.ExecuteTemplate(w, templateError, err)
+}
 
 func renderEmailData(w http.ResponseWriter, emailData []domain.EmailData) {
 	t, _ := template.ParseFiles(pathPageEmailViewer,
@@ -90,6 +105,7 @@ func startServer() error {
 	http.Handle(urlStaticLocalStorage, http.StripPrefix(urlStaticLocalStorage, http.FileServer(http.Dir(fileStorage))))
 	http.HandleFunc(urlRoot, welcomeHandler)
 	http.HandleFunc(urlSearch, searchHandler)
+	http.HandleFunc(urlProcess, processHandler)
 	return http.ListenAndServe(":8080", nil)
 }
 

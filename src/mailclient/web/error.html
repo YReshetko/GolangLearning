@@ -1,0 +1,13 @@
+{{ define "error" }}
+    <!DOCTYPE html>
+    <html style="height:100%;">
+        {{ template "imports" }}
+        <body style="height:100%; background-color: dimgray">
+            <!-- Image and text -->
+            <div style="height:100%; width: 100%;">
+                {{ template "navibar" }}
+                <h4>Error: {{ .}}</h4>
+            </div>
+        </body>
+    </html>
+{{ end }}

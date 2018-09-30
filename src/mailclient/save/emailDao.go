@@ -17,7 +17,7 @@ EmailDao - Data access to emails DB
 */
 type EmailDao interface {
 	Save(data domain.EmailData) error
-	FindByUid(uid uint32) *domain.EmailData
+	FindByUid(uid uint32) (*domain.EmailData, error)
 	FindLatest(count int) []domain.EmailData
 	FindByDateRange(from, to time.Time) []domain.EmailData
 }
@@ -32,13 +32,16 @@ func NewDao(collection *mgo.Collection) EmailDao {
 func (dao *emailDao) Save(data domain.EmailData) error {
 	return dao.collection.Insert(&data)
 }
-func (dao *emailDao) FindByUid(uid uint32) *domain.EmailData {
+func (dao *emailDao) FindByUid(uid uint32) (*domain.EmailData, error) {
 	data := domain.EmailData{}
-	dao.collection.Find(bson.M{"uid": uid}).One(&data)
-	if data.Uid == 0 {
-		return nil
+	err := dao.collection.Find(bson.M{"uid": uid}).One(&data)
+	if err != nil {
+		return nil, err
 	}
-	return &data
+	if data.Uid == 0 {
+		return nil, nil
+	}
+	return &data, nil
 }
 
 func (dao *emailDao) FindByDateRange(from, to time.Time) []domain.EmailData {
