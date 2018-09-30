@@ -52,7 +52,8 @@ func (dao *emailDao) FindLatest(count int) []domain.EmailData {
 		err = c.Find(bson.M{"name": "Ale"}).Sort("-timestamp").All(&results)
 	*/
 	var out []domain.EmailData
-	//Sort descending
+	//Sort descending - Sort("-date")
+	//Sort ascending - Sort("date")
 	dao.collection.Find(nil).Sort("-date").Limit(count).All(&out)
 	return out
 }
