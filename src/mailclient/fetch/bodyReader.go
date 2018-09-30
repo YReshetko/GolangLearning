@@ -22,7 +22,7 @@ const (
 	participant      = "participant"
 	callLength       = "call-length"
 
-	dateTimePattern = "%s-%s-%s %s:%s:%s"
+	dateTimePattern = "%s-%s-%sT%s:%s:%s+0200"
 )
 
 var monthes = map[string]string{
@@ -112,7 +112,7 @@ func (emailReader *emailReader) ReadEmail(reader *mail.Reader, uid uint32) (doma
 
 func getDateByFileName(regExp *regexp.Regexp, filename string) time.Time {
 	slice := regExp.FindAllStringSubmatch(filename, -1)[0]
-	// prepare time in format"2006-01-02 15:04:05"
+	// prepare time in format"2006-01-02T15:04:05+0200"
 	if len(slice) == 7 {
 		day := addLeadingZerroz(slice[1], 2)
 		month := monthes[slice[2]]
@@ -120,7 +120,7 @@ func getDateByFileName(regExp *regexp.Regexp, filename string) time.Time {
 		hours := addLeadingZerroz(slice[4], 2)
 		minutes := addLeadingZerroz(slice[5], 2)
 		seconds := addLeadingZerroz(slice[6], 2)
-		parsedTime, err := time.Parse(timeutil.SQLTimestamp, fmt.Sprintf(dateTimePattern, year, month, day, hours, minutes, seconds))
+		parsedTime, err := time.Parse(timeutil.ISO8601Z, fmt.Sprintf(dateTimePattern, year, month, day, hours, minutes, seconds))
 		if err != nil {
 			log.Printf("Error happened during file day-time parsing: %v; So, returning current time\n", err)
 			return time.Now()

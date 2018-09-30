@@ -6,6 +6,7 @@ import (
 	"mailclient/config"
 	"mailclient/fetch"
 	"mailclient/save"
+	"sort"
 	"time"
 
 	imap "github.com/emersion/go-imap"
@@ -116,6 +117,11 @@ func (saver *checkoutEmails) findUnprocessedEmailUids() []uint32 {
 				uidsToProcess = append(uidsToProcess, msg.Uid)
 			}
 		}
+	}
+	if len(uidsToProcess) > 0 {
+		sort.Slice(uidsToProcess, func(i, j int) bool {
+			return uidsToProcess[i] < uidsToProcess[j]
+		})
 	}
 	return uidsToProcess
 }

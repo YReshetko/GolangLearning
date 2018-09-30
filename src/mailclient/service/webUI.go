@@ -12,6 +12,29 @@ import (
 	"time"
 )
 
+const (
+	urlRoot   = "/"
+	urlSearch = "/search"
+
+	urlStaticCSS          = "/css/"
+	urlStaticJS           = "/js/"
+	urlStaticImage        = "/img/"
+	urlStaticLocalStorage = "/records/"
+
+	pathStaticRoot  = "web"
+	pathStaticCSS   = pathStaticRoot + "/css"
+	pathStaticJS    = pathStaticRoot + "/js"
+	pathStaticImage = pathStaticRoot + "/img"
+
+	pathPageEmailViewer   = pathStaticRoot + "/index.html"
+	pathTemplatesRoot     = pathStaticRoot + "/tmp"
+	pathHeaderTemplate    = pathTemplatesRoot + "/header.html"
+	pathSearchTemplate    = pathTemplatesRoot + "/search.html"
+	pathEmailViewTemplate = pathTemplatesRoot + "/emailoutput.html"
+
+	templateIndex = "index"
+)
+
 var (
 	emailService EmailService
 	dao          save.EmailDao
@@ -50,23 +73,23 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 		records := dao.FindByDateRange(from, to)
 		renderEmailData(w, records)
 	} else {
-		http.Redirect(w, r, "/", http.StatusFound)
+		http.Redirect(w, r, urlRoot, http.StatusFound)
 	}
 }
 
 func renderEmailData(w http.ResponseWriter, emailData []domain.EmailData) {
-	t, _ := template.ParseFiles("web/index.html",
-		"web/tmp/header.html", "web/tmp/search.html", "web/tmp/emailoutput.html")
-	t.ExecuteTemplate(w, "index", emailData)
+	t, _ := template.ParseFiles(pathPageEmailViewer,
+		pathHeaderTemplate, pathSearchTemplate, pathEmailViewTemplate)
+	t.ExecuteTemplate(w, templateIndex, emailData)
 }
 
 func startServer() error {
-	http.Handle("/css/", http.StripPrefix("/css/", http.FileServer(http.Dir("web/css"))))
-	http.Handle("/js/", http.StripPrefix("/js/", http.FileServer(http.Dir("web/js"))))
-	http.Handle("/img/", http.StripPrefix("/img/", http.FileServer(http.Dir("web/img"))))
-	http.Handle("/records/", http.StripPrefix("/records/", http.FileServer(http.Dir(fileStorage))))
-	http.HandleFunc("/", welcomeHandler)
-	http.HandleFunc("/search", searchHandler)
+	http.Handle(urlStaticCSS, http.StripPrefix(urlStaticCSS, http.FileServer(http.Dir(pathStaticCSS))))
+	http.Handle(urlStaticJS, http.StripPrefix(urlStaticJS, http.FileServer(http.Dir(pathStaticJS))))
+	http.Handle(urlStaticImage, http.StripPrefix(urlStaticImage, http.FileServer(http.Dir(pathStaticImage))))
+	http.Handle(urlStaticLocalStorage, http.StripPrefix(urlStaticLocalStorage, http.FileServer(http.Dir(fileStorage))))
+	http.HandleFunc(urlRoot, welcomeHandler)
+	http.HandleFunc(urlSearch, searchHandler)
 	return http.ListenAndServe(":8080", nil)
 }
 
