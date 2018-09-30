@@ -2,6 +2,7 @@ package service
 
 import (
 	"html/template"
+	"io/ioutil"
 	"log"
 	"mailclient/config"
 	"mailclient/domain"
@@ -52,9 +53,11 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusFound)
 	}
 }
+
 func renderEmailData(w http.ResponseWriter, emailData []domain.EmailData) {
-	t, _ := template.ParseFiles("web/index.html")
-	t.Execute(w, emailData)
+	t, _ := template.ParseFiles("web/index.html",
+		"web/tmp/header.html", "web/tmp/search.html", "web/tmp/emailoutput.html")
+	t.ExecuteTemplate(w, "index", emailData)
 }
 
 func startServer() error {
@@ -65,4 +68,13 @@ func startServer() error {
 	http.HandleFunc("/", welcomeHandler)
 	http.HandleFunc("/search", searchHandler)
 	return http.ListenAndServe(":8080", nil)
+}
+
+func loadFile(fileName string) []byte {
+	body, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		log.Printf("Error during file loading %s, error: %v", fileName, err)
+		return nil
+	}
+	return body
 }

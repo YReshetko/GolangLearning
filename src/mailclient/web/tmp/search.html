@@ -1,0 +1,21 @@
+{{ define "search" }}
+    <div>
+        <form style="width: 90%;" action="/search" method="post">
+            <div class="form-row">
+                <div class="col-sm-4"></div>
+                <div class="col-sm-2">
+                    <label class="text-white" for="exampleFormControlSelect1">Начальная дата</label>
+                    <input name="date1" type="date" class="form-control" placeholder="Начальная дата">
+                </div>
+                <div class="col-sm-2">
+                    <label class="text-white" for="exampleFormControlSelect1">Конечная дата</label>
+                    <input name="date2" type="date" class="form-control" placeholder="Конечная дата">
+                </div>
+            </div>
+            <div class="form-row" style="margin-top: 7px;">
+                <div class="col-sm-5"></div>
+                <button type="submit" class="col-sm-2 btn btn-lg btn-dark text-white">Поиск</button>
+            </div>
+        </form>
+    </div>
+{{ end }}

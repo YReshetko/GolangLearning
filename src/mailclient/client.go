@@ -34,8 +34,8 @@ func main() {
 	go service.RunWebService(config.StorageConfiguration, emailService, dao)
 	go service.StartAppInTray(complete)
 
-	log.Println("Starting process as a fers fetch at application start")
-	emailService.Process()
+	log.Println("Starting process as a first fetch at application start")
+	//emailService.Process()
 
 	<-complete
 }

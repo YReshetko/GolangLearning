@@ -1,0 +1,44 @@
+{{ define "emailoutput" }}
+    <table style="width:97%; margin-top: 40px" cellspacing="2" border="1" cellpadding="2" bordercolor="grey" align="center">
+        <tr>
+            <th class="text-white bg-dark">Дата</th>
+            <th class="text-white bg-dark">Тип звонка</th> 
+            <th class="text-white bg-dark">Кто звонит</th>
+            <th class="text-white bg-dark">Входящий номер</th>
+            <th class="text-white bg-dark">Участник</th>
+            <th class="text-white bg-dark">Продолжительность</th>
+            <th class="text-white bg-dark">Файл записи</th>
+        </tr>      
+        {{range .}}
+            <!-- Crate modal for the record-->
+            <div class="modal fade" id="player-modal-{{.Uid}}" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="exampleModalLongTitle">Play {{.RecordFileName}}</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <audio src="records/{{.RecordFileName}}" controls/>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--Create table row-->
+            <tr>
+                <th class="text-white-50">{{.Date}}</th>
+                <th class="text-white-50">{{.CallType}}</th> 
+                <th class="text-white-50">{{.WhoCalls}}</th>
+                <th class="text-white-50">{{.InputNumber}}</th>
+                <th class="text-white-50">{{.Participant}}</th>
+                <th class="text-white-50">{{.Duration}}</th>
+                <th class="text-white-50">
+                    <a type="button" class="btn btn-sm btn-dark text-white" data-toggle="modal" data-target="#player-modal-{{.Uid}}">Плейер</a>
+                    <a type="button" class="btn btn-sm btn-dark text-white" href="records/{{.RecordFileName}}" download>Скачать</a>
+                </th>
+            </tr>  
+        {{end}}
+    </table>
+{{ end }}
