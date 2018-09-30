@@ -29,13 +29,14 @@ func main() {
 	log.Printf("Init fetch email service: %+v\n", config.EmailStructure)
 	emailService := service.NewEmailFetcher(config, dao)
 
+	diagnosticService := service.NewDiagnosticService(emailService, dao, dbAccess, config)
 	log.Println("Starting services")
 	go service.Job(emailService, config.SchedulerConfiguration)
-	go service.RunWebService(config.StorageConfiguration, emailService, dao)
+	go service.RunWebService(config.StorageConfiguration, emailService, dao, diagnosticService)
 	go service.StartAppInTray(complete)
 
 	log.Println("Starting process as a first fetch at application start")
-	emailService.Process()
+	//emailService.Process()
 
 	<-complete
 }

@@ -18,8 +18,8 @@ EmailDao - Data access to emails DB
 type EmailDao interface {
 	Save(data domain.EmailData) error
 	FindByUid(uid uint32) (*domain.EmailData, error)
-	FindLatest(count int) []domain.EmailData
-	FindByDateRange(from, to time.Time) []domain.EmailData
+	FindLatest(count int) ([]domain.EmailData, error)
+	FindByDateRange(from, to time.Time) ([]domain.EmailData, error)
 }
 
 /*
@@ -44,12 +44,12 @@ func (dao *emailDao) FindByUid(uid uint32) (*domain.EmailData, error) {
 	return &data, nil
 }
 
-func (dao *emailDao) FindByDateRange(from, to time.Time) []domain.EmailData {
+func (dao *emailDao) FindByDateRange(from, to time.Time) ([]domain.EmailData, error) {
 	var out []domain.EmailData
-	dao.collection.Find(bson.M{"date": bson.M{"$gte": from, "$lte": to}}).Sort("date").All(&out)
-	return out
+	err := dao.collection.Find(bson.M{"date": bson.M{"$gte": from, "$lte": to}}).Sort("date").All(&out)
+	return out, err
 }
-func (dao *emailDao) FindLatest(count int) []domain.EmailData {
+func (dao *emailDao) FindLatest(count int) ([]domain.EmailData, error) {
 	/*
 		var results []Person
 		err = c.Find(bson.M{"name": "Ale"}).Sort("-timestamp").All(&results)
@@ -57,6 +57,6 @@ func (dao *emailDao) FindLatest(count int) []domain.EmailData {
 	var out []domain.EmailData
 	//Sort descending - Sort("-date")
 	//Sort ascending - Sort("date")
-	dao.collection.Find(nil).Sort("-date").Limit(count).All(&out)
-	return out
+	err := dao.collection.Find(nil).Sort("-date").Limit(count).All(&out)
+	return out, err
 }

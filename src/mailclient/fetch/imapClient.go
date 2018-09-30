@@ -1,6 +1,7 @@
 package fetch
 
 import (
+	"fmt"
 	"log"
 	"mailclient/config"
 	"strconv"
@@ -19,6 +20,13 @@ const (
 type imapClient struct {
 	config config.HostConfig
 	client *client.Client
+}
+type imapClientError struct {
+	msg string
+}
+
+func (err imapClientError) Error() string {
+	return fmt.Sprintf("IMAP Error: %s", err.msg)
 }
 
 /*
@@ -74,7 +82,12 @@ func (cli *imapClient) Mailboxes() (chan *imap.MailboxInfo, error) {
 	mailboxes := make(chan *imap.MailboxInfo, 10)
 	done := make(chan error, 1)
 	go func() {
-		done <- cli.client.List("", "*", mailboxes)
+		if cli.client != nil {
+			done <- cli.client.List("", "*", mailboxes)
+		} else {
+			done <- imapClientError{"Problem with connecting to mailbox"}
+		}
+
 	}()
 	if err := <-done; err != nil {
 		log.Println("Error during fetching mailboxes:", err)

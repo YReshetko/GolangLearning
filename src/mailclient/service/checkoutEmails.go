@@ -30,7 +30,7 @@ EmailService - runs full email fetching saving into DB and local storage
 */
 type EmailService interface {
 	Process() error
-	PrintMailboxes()
+	PrintMailboxes() error
 }
 
 /*
@@ -205,15 +205,16 @@ func (saver *checkoutEmails) processEmail(msg *imap.Message) error {
 	return nil
 }
 
-func (saver *checkoutEmails) PrintMailboxes() {
+func (saver *checkoutEmails) PrintMailboxes() error {
 	saver.preProcess()
 	defer saver.postProcess()
 	boxinfos, err := saver.imapClient.Mailboxes()
 	if err != nil {
 		log.Println("Loading mail boxes error:", err)
-		return
+		return err
 	}
 	for info := range boxinfos {
 		log.Println(info)
 	}
+	return nil
 }

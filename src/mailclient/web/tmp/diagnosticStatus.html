@@ -1,0 +1,56 @@
+{{ define "imapstatus" }}
+    <div class="card text-white {{if .Status}} bg-success {{else}} bg-danger {{end}}">
+        <div class="card-header">Доступ к почте</div>
+        <div class="card-body">
+            <h5 class="card-title">{{if .Status}} Проблем нет {{else}} ПРОБЛЕМА {{end}}</h5>
+            <p class="card-text">
+                {{.Message}}
+            </p>
+        </div>
+        <div class="card-footer">
+            <small class="text-muted text-white">
+                    Адрес: {{.Host}}<br>
+                    Порт: {{.Port}}<br>
+                    .
+            </small>
+        </div>
+    </div>
+{{ end }}
+
+{{ define "daostatus" }}
+    <div class="card text-white {{if .Status}} bg-success {{else}} bg-danger {{end}}">
+        <div class="card-header">Доступ к базе данных</div>
+        <div class="card-body">
+                <h5 class="card-title">{{if .Status}} Проблем нет {{else}} ПРОБЛЕМА {{end}}</h5>
+            <p class="card-text">
+                {{.Message}}
+            </p>
+        </div>
+        <div class="card-footer">
+            <small class="text-muted text-white">
+                    Адрес: {{.Host}}<br>
+                    Порт: {{.Port}}<br>
+                    .
+            </small>
+        </div>
+    </div>
+{{ end }}
+
+{{ define "discstatus" }}
+    <div class="card text-white {{if .Status}} bg-success {{else}} bg-danger {{end}}">
+        <div class="card-header">Состояние диска</div>
+        <div class="card-body">
+            <h5 class="card-title">{{if .Status}} Проблем нет {{else}} ПРОБЛЕМА {{end}}</h5>
+            <p class="card-text">
+                {{.Message}}   
+            </p>
+        </div>
+        <div class="card-footer">
+            <small class="text-muted text-white">
+                    Всего памяти: {{.TotalSpace}}<br>
+                    Использовано: {{.UsedSpace}}<br>
+                    Свободно: {{.FreeSpace}}
+            </small>
+        </div>
+    </div>
+{{ end }}

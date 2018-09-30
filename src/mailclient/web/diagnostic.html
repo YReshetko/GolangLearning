@@ -1,4 +1,4 @@
-{{ define "error" }}
+{{ define "diagnostic" }}
     <!DOCTYPE html>
     <html style="height:100%;">
         {{ template "imports" }}
@@ -6,7 +6,11 @@
             <!-- Image and text -->
             <div style="height:100%; width: 100%;">
                 {{ template "navibar" }}
-                <h4>Error: {{ . }}</h4>
+                <div class="card-group" style="width: 100%;">
+                    {{ template "imapstatus" .ImapSt }}
+                    {{ template "daostatus" .DaoSt }}
+                    {{ template "discstatus" .DiscSt }}
+                </div>
             </div>
         </body>
     </html>

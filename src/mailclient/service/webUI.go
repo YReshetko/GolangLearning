@@ -13,9 +13,10 @@ import (
 )
 
 const (
-	urlRoot    = "/"
-	urlSearch  = "/search"
-	urlProcess = "/process"
+	urlRoot       = "/"
+	urlSearch     = "/search"
+	urlProcess    = "/process"
+	urlDiagnostic = "/diagnostic"
 
 	urlStaticCSS          = "/css/"
 	urlStaticJS           = "/js/"
@@ -27,30 +28,44 @@ const (
 	pathStaticJS    = pathStaticRoot + "/js"
 	pathStaticImage = pathStaticRoot + "/img"
 
-	pathPageEmailViewer   = pathStaticRoot + "/index.html"
-	pathPageError         = pathStaticRoot + "/error.html"
-	pathTemplatesRoot     = pathStaticRoot + "/tmp"
-	pathHeaderTemplate    = pathTemplatesRoot + "/header.html"
-	pathSearchTemplate    = pathTemplatesRoot + "/search.html"
-	pathEmailViewTemplate = pathTemplatesRoot + "/emailoutput.html"
+	pathPageEmailViewer    = pathStaticRoot + "/index.html"
+	pathPageError          = pathStaticRoot + "/error.html"
+	pathPageDiagnostic     = pathStaticRoot + "/diagnostic.html"
+	pathTemplatesRoot      = pathStaticRoot + "/tmp"
+	pathHeaderTemplate     = pathTemplatesRoot + "/header.html"
+	pathSearchTemplate     = pathTemplatesRoot + "/search.html"
+	pathEmailViewTemplate  = pathTemplatesRoot + "/emailoutput.html"
+	pathDiagnosticTemplate = pathTemplatesRoot + "/diagnosticStatus.html"
 
-	templateIndex = "index"
-	templateError = "error"
+	templateIndex      = "index"
+	templateError      = "error"
+	templateDiagnostic = "diagnostic"
 )
 
 var (
-	emailService EmailService
-	dao          save.EmailDao
-	fileStorage  string
+	emailService      EmailService
+	dao               save.EmailDao
+	fileStorage       string
+	diagnosticService DiagnosticService
 )
+
+type DiagnosticStatus struct {
+	ImapSt  ImapStatus
+	ImapErr error
+	DaoSt   DaoStatus
+	DaoErr  error
+	DiscSt  StorageStatus
+	DiscErr error
+}
 
 /*
 RunWebService - run web service
 */
-func RunWebService(config config.StorageConfig, service EmailService, emailDao save.EmailDao) {
+func RunWebService(config config.StorageConfig, service EmailService, emailDao save.EmailDao, diagnostic DiagnosticService) {
 	emailService = service
 	dao = emailDao
 	fileStorage = config.LocalStorageBasePath
+	diagnosticService = diagnostic
 	for {
 		log.Println("Starting web service")
 		err := startServer()
@@ -63,8 +78,13 @@ func RunWebService(config config.StorageConfig, service EmailService, emailDao s
 }
 
 func welcomeHandler(w http.ResponseWriter, r *http.Request) {
-	latestRecords := dao.FindLatest(10)
-	renderEmailData(w, latestRecords)
+	latestRecords, err := dao.FindLatest(10)
+	if err != nil {
+		renderErrorPage(w, err)
+	} else {
+		renderEmailData(w, latestRecords)
+	}
+
 }
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {
@@ -73,8 +93,12 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	if date1 != "" || date2 != "" {
 		from, to := util.GetDateRange(date1, date2)
 		log.Printf("Serch for: date1:%v; date2:%v\n", from, to)
-		records := dao.FindByDateRange(from, to)
-		renderEmailData(w, records)
+		records, err := dao.FindByDateRange(from, to)
+		if err != nil {
+			renderErrorPage(w, err)
+		} else {
+			renderEmailData(w, records)
+		}
 	} else {
 		http.Redirect(w, r, urlRoot, http.StatusFound)
 	}
@@ -85,6 +109,16 @@ func processHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		http.Redirect(w, r, urlRoot, http.StatusFound)
 	}
+}
+
+func diagnosticHandler(w http.ResponseWriter, r *http.Request) {
+	status := &DiagnosticStatus{}
+	status.ImapSt, status.ImapErr = diagnosticService.CheckImap()
+	status.DaoSt, status.DaoErr = diagnosticService.CheckDao()
+	status.DiscSt, status.DiscErr = diagnosticService.CheckLocalStorage()
+	t, err := template.ParseFiles(pathPageDiagnostic, pathHeaderTemplate, pathDiagnosticTemplate)
+	log.Println("Error rendering diagnostic page:", err)
+	t.ExecuteTemplate(w, templateDiagnostic, status)
 }
 
 func renderErrorPage(w http.ResponseWriter, err error) {
@@ -106,6 +140,7 @@ func startServer() error {
 	http.HandleFunc(urlRoot, welcomeHandler)
 	http.HandleFunc(urlSearch, searchHandler)
 	http.HandleFunc(urlProcess, processHandler)
+	http.HandleFunc(urlDiagnostic, diagnosticHandler)
 	return http.ListenAndServe(":8080", nil)
 }
 
