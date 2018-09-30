@@ -1,7 +1,9 @@
 package save
 
 import (
+	"fmt"
 	"mailclient/domain"
+	"strings"
 	"time"
 
 	"gopkg.in/mgo.v2"
@@ -36,7 +38,11 @@ func (dao *emailDao) FindByUid(uid uint32) (*domain.EmailData, error) {
 	data := domain.EmailData{}
 	err := dao.collection.Find(bson.M{"uid": uid}).One(&data)
 	if err != nil {
-		return nil, err
+		if strings.Contains(fmt.Sprint(err), "not found") {
+			return nil, nil
+		} else {
+			return nil, err
+		}
 	}
 	if data.Uid == 0 {
 		return nil, nil

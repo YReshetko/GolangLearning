@@ -1,4 +1,4 @@
-{{ define "imapstatus" }}
+{{ define "imap-status" }}
     <div class="card text-white {{if .Status}} bg-success {{else}} bg-danger {{end}}">
         <div class="card-header">Доступ к почте</div>
         <div class="card-body">
@@ -17,7 +17,7 @@
     </div>
 {{ end }}
 
-{{ define "daostatus" }}
+{{ define "dao-status" }}
     <div class="card text-white {{if .Status}} bg-success {{else}} bg-danger {{end}}">
         <div class="card-header">Доступ к базе данных</div>
         <div class="card-body">
@@ -36,7 +36,7 @@
     </div>
 {{ end }}
 
-{{ define "discstatus" }}
+{{ define "disc-status" }}
     <div class="card text-white {{if .Status}} bg-success {{else}} bg-danger {{end}}">
         <div class="card-header">Состояние диска</div>
         <div class="card-body">
