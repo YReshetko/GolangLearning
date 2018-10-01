@@ -9,3 +9,4 @@ src/golang.org/
 **/*.log
 **/configuration*.json
 src/gopkg.in/
+**/vendor/
