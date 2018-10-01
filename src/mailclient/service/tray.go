@@ -3,9 +3,8 @@ package service
 import (
 	"io/ioutil"
 	"log"
+	"mailclient/util"
 	"os"
-	"os/exec"
-	"runtime"
 
 	"github.com/getlantern/systray"
 )
@@ -34,9 +33,9 @@ func onReady() {
 		for {
 			select {
 			case <-open.ClickedCh:
-				openWindow("http://localhost:8080")
+				util.OpenWindow("http://localhost:8080")
 			case <-about.ClickedCh:
-				openWindow("about.txt")
+				util.OpenWindow("about.txt")
 			case <-mQuit.ClickedCh:
 				systray.Quit()
 				close <- 0
@@ -44,20 +43,6 @@ func onReady() {
 			}
 		}
 	}()
-}
-
-func openWindow(url string) bool {
-	var args []string
-	switch runtime.GOOS {
-	case "darwin":
-		args = []string{"open"}
-	case "windows":
-		args = []string{"cmd", "/c", "start"}
-	default:
-		args = []string{"xdg-open"}
-	}
-	cmd := exec.Command(args[0], append(args[1:], url)...)
-	return cmd.Start() == nil
 }
 
 func onExit() {

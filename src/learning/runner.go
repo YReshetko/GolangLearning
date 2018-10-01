@@ -13,6 +13,7 @@ import (
 	"learning/reader"
 	"learning/regulars"
 	"learning/synchronization"
+	"learning/winProc"
 )
 
 func main() {
@@ -27,9 +28,12 @@ func main() {
 	//readerImage()
 	//gorutPack()
 	//synchPack()
-	regularsPack()
+	//regularsPack()
+	winProcPack()
 }
-
+func winProcPack() {
+	winProc.Experiment1()
+}
 func regularsPack() {
 	regulars.Experiment1()
 }

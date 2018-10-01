@@ -18,6 +18,7 @@ type emailDao struct {
 EmailDao - Data access to emails DB
 */
 type EmailDao interface {
+	UpdateCollection(collection *mgo.Collection)
 	Save(data domain.EmailData) error
 	FindByUid(uid uint32) (*domain.EmailData, error)
 	FindLatest(count int) ([]domain.EmailData, error)
@@ -33,6 +34,10 @@ func NewDao(collection *mgo.Collection) EmailDao {
 
 func (dao *emailDao) Save(data domain.EmailData) error {
 	return dao.collection.Insert(&data)
+}
+
+func (dao *emailDao) UpdateCollection(collection *mgo.Collection) {
+	dao.collection = collection
 }
 func (dao *emailDao) FindByUid(uid uint32) (*domain.EmailData, error) {
 	data := domain.EmailData{}

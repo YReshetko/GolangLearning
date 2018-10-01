@@ -26,6 +26,12 @@
                 {{.Message}}
             </p>
         </div>
+        {{if .Status}} 
+        {{else}}
+            <div class="text-right">
+                <a href="/fix/dao" class="btn btn-sm btn-primary" style="margin-bottom: 2px; margin-right: 12px;">Исправить</a>
+            </div>
+        {{end}}
         <div class="card-footer">
             <small class="text-muted text-white">
                     Адрес: {{.Host}}<br>

@@ -2,9 +2,11 @@ package service
 
 import (
 	"fmt"
+	"log"
 	"mailclient/config"
 	"mailclient/save"
 	"mailclient/util"
+	"time"
 )
 
 const (
@@ -16,6 +18,7 @@ const (
 
 type diagnostic struct {
 	imapService EmailService
+	dbHandler   DbHandler
 	dao         save.EmailDao
 	dbAccess    save.DBAccess
 	config      config.Configuration
@@ -51,8 +54,8 @@ type DiagnosticService interface {
 	FixDao()
 }
 
-func NewDiagnosticService(imap EmailService, dao save.EmailDao, access save.DBAccess, appConfig config.Configuration) DiagnosticService {
-	return &diagnostic{imap, dao, access, appConfig}
+func NewDiagnosticService(imap EmailService, dbHandler DbHandler, dao save.EmailDao, access save.DBAccess, appConfig config.Configuration) DiagnosticService {
+	return &diagnostic{imap, dbHandler, dao, access, appConfig}
 }
 
 func (diag *diagnostic) CheckImap() (ImapStatus, error) {
@@ -109,5 +112,13 @@ func (diag *diagnostic) CheckLocalStorage() (StorageStatus, error) {
 }
 
 func (diag *diagnostic) FixDao() {
-
+	diag.dbAccess.CloseSession()
+	err := diag.dbHandler.Restart()
+	if err != nil {
+		log.Printf("Error during restarting DB:", err)
+	}
+	time.Sleep(2 * time.Second)
+	diag.dbAccess.StartSession()
+	collection := diag.dbAccess.GetCollection(diag.config.StorageConfiguration.CollectionName)
+	diag.dao.UpdateCollection(collection)
 }

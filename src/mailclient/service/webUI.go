@@ -121,6 +121,11 @@ func diagnosticHandler(w http.ResponseWriter, r *http.Request) {
 	t.ExecuteTemplate(w, templateDiagnostic, status)
 }
 
+func fixDaoHandler(w http.ResponseWriter, r *http.Request) {
+	diagnosticService.FixDao()
+	http.Redirect(w, r, urlDiagnostic, http.StatusFound)
+}
+
 func renderErrorPage(w http.ResponseWriter, err error) {
 	t, _ := template.ParseFiles(pathPageError, pathHeaderTemplate)
 	t.ExecuteTemplate(w, templateError, err)
@@ -141,6 +146,7 @@ func startServer() error {
 	http.HandleFunc(urlSearch, searchHandler)
 	http.HandleFunc(urlProcess, processHandler)
 	http.HandleFunc(urlDiagnostic, diagnosticHandler)
+	http.HandleFunc("/fix/dao", fixDaoHandler)
 	return http.ListenAndServe(":8080", nil)
 }
 

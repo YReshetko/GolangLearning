@@ -6,6 +6,7 @@ import (
 	"mailclient/save"
 	"mailclient/service"
 	"os"
+	"time"
 )
 
 //Run to hide windows console of the application
@@ -20,6 +21,14 @@ func main() {
 		log.Println("Can not run an application as config file was not loaded due to next error:", err)
 		os.Exit(1)
 	}
+	dbHandler := service.NewDbHandler(config.StorageConfiguration)
+	err := dbHandler.Start()
+	if err != nil {
+		log.Println("DB was not started at application start due to ", err)
+	} else {
+		defer dbHandler.Stop()
+		time.Sleep(2 * time.Second)
+	}
 	log.Printf("Start init DB access: %+v\n", config.StorageConfiguration)
 	dbAccess := save.NewDBAccess(config.StorageConfiguration.DbHost, config.StorageConfiguration.DbPort, config.StorageConfiguration.DbName)
 	dbAccess.StartSession()
@@ -29,14 +38,14 @@ func main() {
 	log.Printf("Init fetch email service: %+v\n", config.EmailStructure)
 	emailService := service.NewEmailFetcher(config, dao)
 
-	diagnosticService := service.NewDiagnosticService(emailService, dao, dbAccess, config)
+	diagnosticService := service.NewDiagnosticService(emailService, dbHandler, dao, dbAccess, config)
 	log.Println("Starting services")
 	go service.Job(emailService, config.SchedulerConfiguration)
 	go service.RunWebService(config.StorageConfiguration, emailService, dao, diagnosticService)
 	go service.StartAppInTray(complete)
 
 	log.Println("Starting process as a first fetch at application start")
-	//emailService.Process()
+	emailService.Process()
 
 	<-complete
 }

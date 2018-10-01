@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	defaultConfigFileName = "configuration_dev.json"
+	defaultConfigFileName = "configuration.json"
 )
 
 type Configuration struct {
@@ -32,6 +32,8 @@ type MailStructure struct {
 }
 
 type StorageConfig struct {
+	MongoAppPath         string
+	MongoDbPath          string
 	DbHost               string
 	DbPort               string
 	DbName               string
