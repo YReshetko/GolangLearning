@@ -161,7 +161,8 @@ func fetch(fetchF fetchFunc, seqset *imap.SeqSet, items []imap.FetchItem, messag
 	go func() {
 		errChan <- fetchF(seqset, items, messages)
 	}()
-	timeouts := 20
+	defaultTimeout := 20
+	timeouts := defaultTimeout
 	for {
 		select {
 		case err := <-errChan:
@@ -169,7 +170,7 @@ func fetch(fetchF fetchFunc, seqset *imap.SeqSet, items []imap.FetchItem, messag
 		default:
 			timeouts--
 			if timeouts == 0 {
-				log.Printf("Long waiting time: %v sec. for fetching emails set: %v\n", timeouts, seqset)
+				log.Printf("Long waiting time: %v sec. for fetching emails set: %v\n", defaultTimeout, seqset)
 				return ErrorEmailFetching{"Stop fetching due to timeout"}
 			}
 			time.Sleep(time.Second)

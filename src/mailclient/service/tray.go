@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"log"
 	"mailclient/util"
-	"os"
 
 	"github.com/getlantern/systray"
 )
@@ -46,9 +45,7 @@ func onReady() {
 
 func onExit() {
 	log.Println("Closing tray")
-	os.Exit(0)
 	close <- 1
-
 }
 
 func getIcon(s string) []byte {
