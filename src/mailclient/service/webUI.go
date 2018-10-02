@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"log"
 	"mailclient/config"
-	"mailclient/domain"
 	"mailclient/save"
 	"mailclient/util"
 	"net/http"
@@ -13,10 +12,11 @@ import (
 )
 
 const (
-	urlRoot       = "/"
-	urlSearch     = "/search"
-	urlProcess    = "/process"
-	urlDiagnostic = "/diagnostic"
+	urlRoot        = "/"
+	urlSearch      = "/search"
+	urlProcess     = "/process"
+	urlDiagnostic  = "/diagnostic"
+	urlFixDaoIssue = "/fix/dao"
 
 	urlStaticCSS          = "/css/"
 	urlStaticJS           = "/js/"
@@ -29,7 +29,6 @@ const (
 	pathStaticImage = pathStaticRoot + "/img"
 
 	pathPageEmailViewer    = pathStaticRoot + "/index.html"
-	pathPageError          = pathStaticRoot + "/error.html"
 	pathPageDiagnostic     = pathStaticRoot + "/diagnostic.html"
 	pathTemplatesRoot      = pathStaticRoot + "/tmp"
 	pathHeaderTemplate     = pathTemplatesRoot + "/header.html"
@@ -38,7 +37,6 @@ const (
 	pathDiagnosticTemplate = pathTemplatesRoot + "/diagnosticStatus.html"
 
 	templateIndex      = "index"
-	templateError      = "error"
 	templateDiagnostic = "diagnostic"
 )
 
@@ -56,6 +54,10 @@ type DiagnosticStatus struct {
 	DaoErr  error
 	DiscSt  StorageStatus
 	DiscErr error
+}
+type viewModel struct {
+	Error error
+	Data  interface{}
 }
 
 /*
@@ -79,12 +81,13 @@ func RunWebService(config config.StorageConfig, service EmailService, emailDao s
 
 func welcomeHandler(w http.ResponseWriter, r *http.Request) {
 	latestRecords, err := dao.FindLatest(10)
+	model := viewModel{}
 	if err != nil {
-		renderErrorPage(w, err)
+		model.Error = err
 	} else {
-		renderEmailData(w, latestRecords)
+		model.Data = latestRecords
 	}
-
+	renderEmailData(w, model)
 }
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {
@@ -94,18 +97,22 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 		from, to := util.GetDateRange(date1, date2)
 		log.Printf("Serch for: date1:%v; date2:%v\n", from, to)
 		records, err := dao.FindByDateRange(from, to)
+		model := viewModel{}
 		if err != nil {
-			renderErrorPage(w, err)
+			model.Error = err
 		} else {
-			renderEmailData(w, records)
+			model.Data = records
 		}
+		renderEmailData(w, model)
 	} else {
 		http.Redirect(w, r, urlRoot, http.StatusFound)
 	}
 }
 func processHandler(w http.ResponseWriter, r *http.Request) {
 	if err := emailService.Process(); err != nil {
-		renderErrorPage(w, err)
+		model := viewModel{}
+		model.Error = err
+		renderEmailData(w, model)
 	} else {
 		http.Redirect(w, r, urlRoot, http.StatusFound)
 	}
@@ -118,7 +125,8 @@ func diagnosticHandler(w http.ResponseWriter, r *http.Request) {
 	status.DiscSt, status.DiscErr = diagnosticService.CheckLocalStorage()
 	t, err := template.ParseFiles(pathPageDiagnostic, pathHeaderTemplate, pathDiagnosticTemplate)
 	log.Println("Error rendering diagnostic page:", err)
-	t.ExecuteTemplate(w, templateDiagnostic, status)
+	model := viewModel{err, status}
+	t.ExecuteTemplate(w, templateDiagnostic, model)
 }
 
 func fixDaoHandler(w http.ResponseWriter, r *http.Request) {
@@ -126,15 +134,10 @@ func fixDaoHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, urlDiagnostic, http.StatusFound)
 }
 
-func renderErrorPage(w http.ResponseWriter, err error) {
-	t, _ := template.ParseFiles(pathPageError, pathHeaderTemplate)
-	t.ExecuteTemplate(w, templateError, err)
-}
-
-func renderEmailData(w http.ResponseWriter, emailData []domain.EmailData) {
+func renderEmailData(w http.ResponseWriter, model viewModel) {
 	t, _ := template.ParseFiles(pathPageEmailViewer,
 		pathHeaderTemplate, pathSearchTemplate, pathEmailViewTemplate)
-	t.ExecuteTemplate(w, templateIndex, emailData)
+	t.ExecuteTemplate(w, templateIndex, model)
 }
 
 func startServer() error {
@@ -146,7 +149,7 @@ func startServer() error {
 	http.HandleFunc(urlSearch, searchHandler)
 	http.HandleFunc(urlProcess, processHandler)
 	http.HandleFunc(urlDiagnostic, diagnosticHandler)
-	http.HandleFunc("/fix/dao", fixDaoHandler)
+	http.HandleFunc(urlFixDaoIssue, fixDaoHandler)
 	return http.ListenAndServe(":8080", nil)
 }
 

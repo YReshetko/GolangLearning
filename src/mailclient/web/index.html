@@ -5,9 +5,9 @@
         <body style="height:100%; background-color: dimgray">
             <!-- Image and text -->
             <div style="height:100%; width: 100%;">
-                {{ template "navibar" }}
+                {{ template "navibar" .Error}}
                 {{ template "search" }}
-                {{ template "emailoutput" .}}
+                {{ template "emailoutput" .Data}}
             </div>
         </body>
     </html>

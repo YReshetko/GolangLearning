@@ -25,5 +25,10 @@
                 </li>
             </ul>
         </div>
+        {{if not . }}
+            
+        {{else}}
+            <h5 class="text-white-50">Проблема: <span class="badge badge-danger">{{ . }}</span></h5>
+        {{end}}
     </nav>
 {{ end }}

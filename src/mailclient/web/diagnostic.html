@@ -5,11 +5,11 @@
         <body style="height:100%; background-color: dimgray">
             <!-- Image and text -->
             <div style="height:100%; width: 100%;">
-                {{ template "navibar" }}
+                {{ template "navibar" .Error}}
                 <div class="card-group" style="width: 100%;">
-                    {{ template "imap-status" .ImapSt }}
-                    {{ template "dao-status" .DaoSt }}
-                    {{ template "disc-status" .DiscSt }}
+                    {{ template "imap-status" .Data.ImapSt }}
+                    {{ template "dao-status" .Data.DaoSt }}
+                    {{ template "disc-status" .Data.DiscSt }}
                 </div>
             </div>
         </body>
