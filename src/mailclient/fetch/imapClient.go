@@ -143,12 +143,11 @@ func startFetching(messagesOut chan *imap.Message, done chan bool, cli *imapClie
 		default:
 			seqset := fetchManager.NextSequenceSet()
 			log.Printf("Current subseq:%v, start fetching new portion\n", seqset)
-			fetchError = fetch(fetchManager.FetchFunction(), seqset, fetchManager.FetchItems(), messages)
+			fetchError = nonBlockingFetch(fetchManager.FetchFunction(), seqset, fetchManager.FetchItems(), messages)
 			log.Println("Complete fetching emails")
 		}
 		if fetchError == nil {
 			redirectMessages(messages, messagesOut)
-			time.Sleep(2 * time.Second)
 		} else {
 			log.Println("Error during fetching emails from IMAP server:", fetchError)
 			return
@@ -156,7 +155,7 @@ func startFetching(messagesOut chan *imap.Message, done chan bool, cli *imapClie
 	}
 }
 
-func fetch(fetchF fetchFunc, seqset *imap.SeqSet, items []imap.FetchItem, messages chan *imap.Message) error {
+func nonBlockingFetch(fetchF fetchFunc, seqset *imap.SeqSet, items []imap.FetchItem, messages chan *imap.Message) error {
 	errChan := make(chan error, 1)
 	go func() {
 		errChan <- fetchF(seqset, items, messages)

@@ -25,6 +25,7 @@ func onReady() {
 	systray.SetTitle("E-MFetcher")
 	systray.SetTooltip("E-MFetcher - сбор писем")
 	about := systray.AddMenuItem("О программе", "Информация о программе")
+	log := systray.AddMenuItem("Лог", "Открыть файл с логом")
 	open := systray.AddMenuItem("Браузер", "Доступ к поиску")
 	systray.AddSeparator()
 	mQuit := systray.AddMenuItem("Выход", "Закрыть приложение")
@@ -33,6 +34,8 @@ func onReady() {
 			select {
 			case <-open.ClickedCh:
 				util.OpenWindow("http://localhost:8080")
+			case <-log.ClickedCh:
+				util.OpenWindow("log/mfetch.log")
 			case <-about.ClickedCh:
 				util.OpenWindow("about.txt")
 			case <-mQuit.ClickedCh:
