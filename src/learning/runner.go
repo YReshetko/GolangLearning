@@ -26,10 +26,10 @@ func main() {
 	//errorPack()
 	//readerPack()
 	//readerImage()
-	//gorutPack()
+	gorutPack()
 	//synchPack()
 	//regularsPack()
-	winProcPack()
+	//winProcPack()
 }
 func winProcPack() {
 	winProc.Experiment1()
@@ -49,7 +49,8 @@ func gorutPack() {
 	//gorutin.Experiment4()
 	//gorutin.Experiment5()
 	//gorutin.Experiment6()
-	gorutin.Task()
+	gorutin.Experiment7()
+	//gorutin.Task()
 }
 func readerImage() {
 	//img.Experiment1()
