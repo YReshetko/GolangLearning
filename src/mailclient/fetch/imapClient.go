@@ -29,6 +29,14 @@ func (err imapClientError) Error() string {
 	return fmt.Sprintf("IMAP Error: %s", err.msg)
 }
 
+type ErrorEmailFetching struct {
+	message string
+}
+
+func (err ErrorEmailFetching) Error() string {
+	return fmt.Sprintf("Fetch email error: %s", err.message)
+}
+
 /*
 ImapClient - access to IMAP server
 */
@@ -72,6 +80,8 @@ func (cli *imapClient) Logout() error {
 	if cli.client != nil {
 		cli.client.Logout()
 		log.Println("Logout on IMAP server")
+		cli.client.Close()
+		log.Println("Closed IMAP session")
 	} else {
 		log.Println("Logouting when the client does not exist")
 	}
@@ -122,25 +132,48 @@ func startFetching(messagesOut chan *imap.Message, done chan bool, cli *imapClie
 		log.Println("Closing major output channel")
 		close(messagesOut)
 	}()
-	bufferCompleted := make(chan error, 1)
+	var fetchError error
 	for fetchManager.HasNext() {
 		chanSize := fetchManager.BufferSize() + 1
 		messages := make(chan *imap.Message, chanSize)
+		log.Println("Buffer size to fetch new portion:", chanSize)
 		select {
 		case <-done:
 			return
 		default:
 			seqset := fetchManager.NextSequenceSet()
 			log.Printf("Current subseq:%v, start fetching new portion\n", seqset)
-			bufferCompleted <- fetchManager.FetchFunction()(seqset, fetchManager.FetchItems(), messages)
+			fetchError = fetch(fetchManager.FetchFunction(), seqset, fetchManager.FetchItems(), messages)
 			log.Println("Complete fetching emails")
 		}
-		if err := <-bufferCompleted; err == nil {
+		if fetchError == nil {
 			redirectMessages(messages, messagesOut)
 			time.Sleep(2 * time.Second)
 		} else {
-			log.Println("Error during fetching emails from IMAP server:", err)
+			log.Println("Error during fetching emails from IMAP server:", fetchError)
 			return
+		}
+	}
+}
+
+func fetch(fetchF fetchFunc, seqset *imap.SeqSet, items []imap.FetchItem, messages chan *imap.Message) error {
+	errChan := make(chan error, 1)
+	go func() {
+		errChan <- fetchF(seqset, items, messages)
+	}()
+	timeouts := 20
+	for {
+		select {
+		case err := <-errChan:
+			return err
+		default:
+			timeouts--
+			if timeouts == 0 {
+				log.Printf("Long waiting time: %v sec. for fetching emails set: %v\n", timeouts, seqset)
+				return ErrorEmailFetching{"Stop fetching due to timeout"}
+			}
+			time.Sleep(time.Second)
+
 		}
 	}
 }

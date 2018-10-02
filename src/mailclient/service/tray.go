@@ -38,7 +38,6 @@ func onReady() {
 				util.OpenWindow("about.txt")
 			case <-mQuit.ClickedCh:
 				systray.Quit()
-				close <- 0
 				return
 			}
 		}
@@ -47,8 +46,9 @@ func onReady() {
 
 func onExit() {
 	log.Println("Closing tray")
-	close <- 1
 	os.Exit(0)
+	close <- 1
+
 }
 
 func getIcon(s string) []byte {
