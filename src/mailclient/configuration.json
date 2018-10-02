@@ -7,11 +7,11 @@
     },
     "emailStructure" :{
         "expectedSender" : "some_user",
-        "fileNameRegExp" : "([0-9]{1,2})(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)([0-9]{4})_([0-9]{1,2})h([0-9]{1,2})m([0-9]{1,2})s\\.txt",
-	    "whoCallsRegExp" : "выковырять ([0-9]+) затем",
-	    "inputNumberRegExp" : "числовую ([абвгдеёжзийклмнопрстуфхцчшщьъыэюя0-9]+),",
-	    "participantRegExp" : "номер ([0-9]+)",
-	    "callLengthRegExp" : "Продолжительность общения: ([0-9]{1,2} мин\\. [0-9]{1,2} сек\\.|[0-9]{1,2} сек\\.)"
+        "fileNameRegExp" : "record ([0-9]{1,2})(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)([0-9]{4})_([0-9]{1,2})h([0-9]{1,2})m([0-9]{1,2})s\\.mp3",
+	    "whoCallsRegExp" : "абонента с номером ([0-9]+)\\.",
+	    "inputNumberRegExp" : "поступившего на номер ([0-9]+)\\.",
+        "participantRegExp" : "при вызове на номер ([0-9]+),",
+        "callLengthRegExp" : "Продолжительность общения: ([0-9]{1,2} мин\\. [0-9]{1,2} сек\\.|[0-9]{1,2} сек\\.)"
     },
     "storageConfiguration": {
         "mongoAppPath":"C:/Path/To/Mongo/Db/App/bin/",

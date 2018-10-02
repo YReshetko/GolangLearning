@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"syscall"
@@ -27,6 +28,24 @@ func OpenWindow(url string) bool {
 	return cmd.Start() == nil
 }
 
+func IsRelativePath(path string) bool {
+	return string(path[1]) != ":"
+}
+
+func CreateAbsolutePath(relativePath string) string {
+	pathToRoot, err := filepath.Abs(".")
+	if err != nil {
+		log.Println("Error during retrieving absolute root path of application:", err)
+		return relativePath
+	} else {
+		if string(relativePath[0]) != "/" {
+			return pathToRoot + "/" + relativePath
+		} else {
+			return pathToRoot + relativePath
+		}
+
+	}
+}
 func RunWinProgramm(program string, args []string) bool {
 	cmd := exec.Command(program, args...)
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}

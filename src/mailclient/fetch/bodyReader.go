@@ -141,12 +141,19 @@ func addLeadingZerroz(value string, expectedLength int) string {
 }
 
 func extractField(regExp *regexp.Regexp, text string) string {
-	return regExp.FindAllStringSubmatch(text, -1)[0][1]
+	arr := regExp.FindAllStringSubmatch(text, -1)
+	if len(arr) >= 1 && len(arr[0]) >= 2 {
+		return regExp.FindAllStringSubmatch(text, -1)[0][1]
+	} else {
+		log.Printf("Cant match pattern\n%v\nagainst text\n%s\n", regExp, text)
+		return ""
+	}
 }
 func (emailReader *emailReader) matchText(text string) bool {
 	ok := emailReader.regExpMap[whoCalls].MatchString(text)
 	ok = ok && emailReader.regExpMap[inputNumber].MatchString(text)
 	ok = ok && emailReader.regExpMap[participant].MatchString(text)
+	ok = ok && emailReader.regExpMap[callLength].MatchString(text)
 	return ok
 }
 func (emailReader *emailReader) matchFileName(text string) bool {

@@ -19,9 +19,18 @@ type DbHandler interface {
 }
 
 func NewDbHandler(config config.StorageConfig) DbHandler {
+	//TODO cretae absolute path if there is relative path set into config
+	mongoAppPath := config.MongoAppPath
+	if util.IsRelativePath(mongoAppPath) {
+		mongoAppPath = util.CreateAbsolutePath(mongoAppPath)
+	}
+	mongoDbPath := config.MongoDbPath
+	if util.IsRelativePath(mongoDbPath) {
+		mongoDbPath = util.CreateAbsolutePath(mongoDbPath)
+	}
 	return &mongoHandler{
-		config.MongoAppPath + mongoExe,
-		config.MongoDbPath,
+		mongoAppPath + mongoExe,
+		mongoDbPath,
 	}
 }
 
