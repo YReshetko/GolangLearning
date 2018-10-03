@@ -35,7 +35,7 @@ func onReady() {
 			case <-open.ClickedCh:
 				util.OpenWindow("http://localhost:8080")
 			case <-log.ClickedCh:
-				util.OpenWindow("log/mfetch.log")
+				util.OpenWindow("/log/mfetch.log")
 			case <-about.ClickedCh:
 				util.OpenWindow("about.txt")
 			case <-mQuit.ClickedCh:

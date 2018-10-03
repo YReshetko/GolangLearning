@@ -129,6 +129,7 @@ func (saver *checkoutEmails) needsProcessing(msg *imap.Message) bool {
 	var from string
 	if msg.Envelope != nil {
 		from = msg.Envelope.From[0].MailboxName
+		log.Println("Current sender: ", from)
 	}
 	if from == saver.expectedSender {
 		log.Printf("Found possible email for fetching: %+v\n", msg)

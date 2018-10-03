@@ -45,7 +45,7 @@ func main() {
 	go service.StartAppInTray(complete)
 
 	log.Println("Starting process as a first fetch at application start")
-	emailService.Process()
+	//emailService.Process()
 
 	<-complete
 }

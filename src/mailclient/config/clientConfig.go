@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	defaultConfigFileName = "configuration.json"
+	defaultConfigFileName = "configuration_acad.json"
 )
 
 type Configuration struct {
