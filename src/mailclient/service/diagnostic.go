@@ -2,8 +2,8 @@ package service
 
 import (
 	"fmt"
-	"log"
 	"mailclient/config"
+	"mailclient/logger"
 	"mailclient/save"
 	"mailclient/util"
 	"time"
@@ -115,7 +115,7 @@ func (diag *diagnostic) FixDao() {
 	diag.dbAccess.CloseSession()
 	err := diag.dbHandler.Restart()
 	if err != nil {
-		log.Printf("Error during restarting DB:", err)
+		logger.Error("Error during restarting DB:", err)
 	}
 	time.Sleep(2 * time.Second)
 	diag.dbAccess.StartSession()

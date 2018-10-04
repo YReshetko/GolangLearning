@@ -3,8 +3,8 @@ package save
 import (
 	"bufio"
 	"bytes"
-	"log"
 	"mailclient/domain"
+	"mailclient/logger"
 	"os"
 )
 
@@ -33,18 +33,18 @@ func (s *saver) saveFile(buffer *bytes.Buffer, fileName string) error {
 	fullPath := s.storagePath + fileName
 	fo, err := os.Create(fullPath)
 	if err != nil {
-		log.Printf("Error creating file %s: %v", fullPath, err)
+		logger.Error("Error creating file %s: %v", fullPath, err)
 		return err
 	}
 	defer func() {
 		if err := fo.Close(); err != nil {
-			log.Printf("Error closing file %s: %v", fullPath, err)
+			logger.Error("Error closing file %s: %v", fullPath, err)
 		}
 	}()
 	w := bufio.NewWriter(fo)
 	buffer.WriteTo(w)
 	if err = w.Flush(); err != nil {
-		log.Printf("Error flushing bytes into file %s: %v", fullPath, err)
+		logger.Error("Error flushing bytes into file %s: %v", fullPath, err)
 		return err
 	}
 	return nil

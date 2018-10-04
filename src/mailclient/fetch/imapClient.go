@@ -2,8 +2,8 @@ package fetch
 
 import (
 	"fmt"
-	"log"
 	"mailclient/config"
+	"mailclient/logger"
 	"strconv"
 	"time"
 
@@ -58,14 +58,14 @@ func NewImapClient(config config.HostConfig) ImapClient {
 
 func (cli *imapClient) Connect() error {
 	server := cli.config.ImapHost + ":" + strconv.Itoa(cli.config.ImapPort)
-	log.Printf("Connectiong to IMAP server: %s\n", server)
+	logger.Debug("Connectiong to IMAP server: %s\n", server)
 	c, err := client.DialTLS(server, nil)
 	cli.client = c
 	if err != nil {
-		log.Println("Error during connecting to IMAP server", err)
+		logger.Error("Error during connecting to IMAP server", err)
 		return err
 	}
-	log.Println("Connected to IMAP server")
+	logger.Debug("Connected to IMAP server")
 	return nil
 }
 
@@ -73,17 +73,17 @@ func (cli *imapClient) Login() error {
 	if err := cli.client.Login(cli.config.ClientEmail, cli.config.ClientPassword); err != nil {
 		return err
 	}
-	log.Println("Logged on IMAP server")
+	logger.Debug("Logged on IMAP server")
 	return nil
 }
 func (cli *imapClient) Logout() error {
 	if cli.client != nil {
 		cli.client.Logout()
-		log.Println("Logout on IMAP server")
+		logger.Debug("Logout on IMAP server")
 		cli.client.Close()
-		log.Println("Closed IMAP session")
+		logger.Debug("Closed IMAP session")
 	} else {
-		log.Println("Logouting when the client does not exist")
+		logger.Warning("Logouting when the client does not exist")
 	}
 	return nil
 }
@@ -100,7 +100,7 @@ func (cli *imapClient) Mailboxes() (chan *imap.MailboxInfo, error) {
 
 	}()
 	if err := <-done; err != nil {
-		log.Println("Error during fetching mailboxes:", err)
+		logger.Error("Error during fetching mailboxes:", err)
 		return nil, err
 	}
 	return mailboxes, nil
@@ -109,12 +109,12 @@ func (cli *imapClient) Mailboxes() (chan *imap.MailboxInfo, error) {
 func (cli *imapClient) GetMessageEnvelopChannel(box string, done chan bool) (chan *imap.Message, error) {
 	messagesNumber, err := getNumMessagesForBox(box, cli.client)
 	if err != nil {
-		log.Println("Error retrieving number of messages from IMAP server:", err)
+		logger.Error("Error retrieving number of messages from IMAP server:", err)
 		return nil, err
 	}
 	bufferSize := defaultEmailEnvelopBufferSize
 	messagesOut := make(chan *imap.Message, bufferSize/2)
-	log.Printf("Initial messages number: %v\n", messagesNumber)
+	logger.Debug("Initial messages number: %v\n", messagesNumber)
 	go startFetching(messagesOut, done, cli, NewEnvelopFetchManager(cli.client.Fetch, messagesNumber, bufferSize))
 	return messagesOut, nil
 }
@@ -122,34 +122,34 @@ func (cli *imapClient) GetMessageEnvelopChannel(box string, done chan bool) (cha
 func (cli *imapClient) GetMessageBodyChannel(box string, uids []uint32) (chan *imap.Message, error) {
 	bufferSize := defaultEmailBodyBufferSize
 	messagesOut := make(chan *imap.Message, bufferSize/2)
-	log.Printf("Initial uids number: %v\n", len(uids))
+	logger.Debug("Initial uids number: %v\n", len(uids))
 	go startFetching(messagesOut, nil, cli, NewBodyFetchManager(cli.client.UidFetch, uids, bufferSize))
 	return messagesOut, nil
 }
 
 func startFetching(messagesOut chan *imap.Message, done chan bool, cli *imapClient, fetchManager FetchManager) {
 	defer func() {
-		log.Println("Closing major output channel")
+		logger.Debug("Closing major output channel")
 		close(messagesOut)
 	}()
 	var fetchError error
 	for fetchManager.HasNext() {
 		chanSize := fetchManager.BufferSize() + 1
 		messages := make(chan *imap.Message, chanSize)
-		log.Println("Buffer size to fetch new portion:", chanSize)
+		logger.Debug("Buffer size to fetch new portion:", chanSize)
 		select {
 		case <-done:
 			return
 		default:
 			seqset := fetchManager.NextSequenceSet()
-			log.Printf("Current subseq:%v, start fetching new portion\n", seqset)
+			logger.Debug("Current subseq:%v, start fetching new portion\n", seqset)
 			fetchError = nonBlockingFetch(fetchManager.FetchFunction(), seqset, fetchManager.FetchItems(), messages)
-			log.Println("Complete fetching emails")
+			logger.Debug("Complete fetching emails")
 		}
 		if fetchError == nil {
 			redirectMessages(messages, messagesOut)
 		} else {
-			log.Println("Error during fetching emails from IMAP server:", fetchError)
+			logger.Error("Error during fetching emails from IMAP server:", fetchError)
 			return
 		}
 	}
@@ -169,7 +169,7 @@ func nonBlockingFetch(fetchF fetchFunc, seqset *imap.SeqSet, items []imap.FetchI
 		default:
 			timeouts--
 			if timeouts == 0 {
-				log.Printf("Long waiting time: %v sec. for fetching emails set: %v\n", defaultTimeout, seqset)
+				logger.Warning("Long waiting time: %v sec. for fetching emails set: %v\n", defaultTimeout, seqset)
 				return ErrorEmailFetching{"Stop fetching due to timeout"}
 			}
 			time.Sleep(time.Second)

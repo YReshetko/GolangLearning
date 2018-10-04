@@ -3,8 +3,8 @@ package service
 import (
 	"html/template"
 	"io/ioutil"
-	"log"
 	"mailclient/config"
+	"mailclient/logger"
 	"mailclient/save"
 	"mailclient/util"
 	"net/http"
@@ -69,11 +69,11 @@ func RunWebService(config config.StorageConfig, service EmailService, emailDao s
 	fileStorage = config.LocalStorageBasePath
 	diagnosticService = diagnostic
 	for {
-		log.Println("Starting web service")
+		logger.Info("Starting web service")
 		err := startServer()
 		if err != nil {
-			log.Println("Web service is crashed with error:", err)
-			log.Println("Restarting web service in 1 minute")
+			logger.Error("Web service is crashed with error:", err)
+			logger.Error("Restarting web service in 1 minute")
 			time.Sleep(time.Minute)
 		}
 	}
@@ -95,7 +95,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	date2 := r.FormValue("date2")
 	if date1 != "" || date2 != "" {
 		from, to := util.GetDateRange(date1, date2)
-		log.Printf("Serch for: date1:%v; date2:%v\n", from, to)
+		logger.Debug("Serch for: date1:%v; date2:%v\n", from, to)
 		records, err := dao.FindByDateRange(from, to)
 		model := viewModel{}
 		if err != nil {
@@ -124,7 +124,7 @@ func diagnosticHandler(w http.ResponseWriter, r *http.Request) {
 	status.DaoSt, status.DaoErr = diagnosticService.CheckDao()
 	status.DiscSt, status.DiscErr = diagnosticService.CheckLocalStorage()
 	t, err := template.ParseFiles(pathPageDiagnostic, pathHeaderTemplate, pathDiagnosticTemplate)
-	log.Println("Error rendering diagnostic page:", err)
+	logger.Debug("Error rendering diagnostic page:", err)
 	model := viewModel{err, status}
 	t.ExecuteTemplate(w, templateDiagnostic, model)
 }
@@ -156,7 +156,7 @@ func startServer() error {
 func loadFile(fileName string) []byte {
 	body, err := ioutil.ReadFile(fileName)
 	if err != nil {
-		log.Printf("Error during file loading %s, error: %v", fileName, err)
+		logger.Error("Error during file loading %s, error: %v", fileName, err)
 		return nil
 	}
 	return body

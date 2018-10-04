@@ -1,7 +1,7 @@
 package save
 
 import (
-	"log"
+	"mailclient/logger"
 
 	"gopkg.in/mgo.v2"
 )
@@ -36,16 +36,16 @@ func (acccess *dbAccess) StartSession() bool {
 	dbHost := acccess.host + ":" + acccess.port
 	session, err := mgo.Dial(dbHost)
 	if err != nil {
-		log.Printf("Error during access to DB:%s, %v", dbHost, err)
+		logger.Error("Error during access to DB:%s, %v", dbHost, err)
 		return false
 	}
-	log.Println("Connected to DB:", dbHost)
+	logger.Info("Connected to DB:", dbHost)
 	session.SetMode(mgo.Monotonic, true)
 	acccess.session = session
 	return true
 }
 func (acccess *dbAccess) CloseSession() bool {
-	log.Println("Closing DB session")
+	logger.Info("Closing DB session")
 	acccess.session.Close()
 	acccess.session = nil
 	return true

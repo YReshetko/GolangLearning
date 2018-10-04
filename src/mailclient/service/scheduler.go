@@ -1,8 +1,8 @@
 package service
 
 import (
-	"log"
 	"mailclient/config"
+	"mailclient/logger"
 	"time"
 
 	"github.com/jasonlvhit/gocron"
@@ -53,9 +53,9 @@ func Job(emailService EmailService, config config.SchedulerConfig) {
 
 func run() {
 	go func() {
-		log.Println("Running fetch processing by scheduler at:", time.Now())
+		logger.Debug("Running fetch processing by scheduler at:", time.Now())
 		if err := executeVar.Process(); err != nil {
-			log.Println("Error during running fetch process by scheduler:", err)
+			logger.Error("Error during running fetch process by scheduler:", err)
 		}
 	}()
 }

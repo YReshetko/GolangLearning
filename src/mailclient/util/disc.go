@@ -2,7 +2,7 @@ package util
 
 import (
 	"fmt"
-	"log"
+	"mailclient/logger"
 	"strings"
 	"syscall"
 	"unsafe"
@@ -27,7 +27,7 @@ func DiskUsage(path string) (disk DiskStatus) {
 		uintptr(unsafe.Pointer(&lpTotalNumberOfFreeBytes)))
 	if err != nil {
 		if !strings.Contains(fmt.Sprint(err), "successfully") {
-			log.Println("Error during retrieving memory statistic:", err)
+			logger.Error("Error during retrieving memory statistic:", err)
 			return
 		}
 	}

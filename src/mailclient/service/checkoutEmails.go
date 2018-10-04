@@ -2,9 +2,9 @@ package service
 
 import (
 	"fmt"
-	"log"
 	"mailclient/config"
 	"mailclient/fetch"
+	"mailclient/logger"
 	"mailclient/save"
 	"sort"
 	"time"
@@ -63,7 +63,7 @@ func (saver *checkoutEmails) Process() error {
 	defer saver.postProcess()
 	if err := saver.preProcess(); err == nil {
 		uids := saver.findUnprocessedEmailUids()
-		log.Println("Found unprocessed UIDs:", uids)
+		logger.Debug("Found unprocessed UIDs:", uids)
 		if len(uids) > 0 {
 			time.Sleep(2 * time.Second)
 			saver.processUids(uids)
@@ -97,7 +97,7 @@ func (saver *checkoutEmails) findUnprocessedEmailUids() []uint32 {
 	messagesChannel, err := saver.imapClient.GetMessageEnvelopChannel(inboxName, done)
 	if err != nil {
 		done <- false
-		log.Println("Error during retrieving channel for UID fetching:", err)
+		logger.Error("Error during retrieving channel for UID fetching:", err)
 		return make([]uint32, 0)
 	}
 
@@ -129,10 +129,10 @@ func (saver *checkoutEmails) needsProcessing(msg *imap.Message) bool {
 	var from string
 	if msg.Envelope != nil {
 		from = msg.Envelope.From[0].MailboxName
-		log.Println("Current sender: ", from)
+		logger.Debug("Current sender: ", from)
 	}
 	if from == saver.expectedSender {
-		log.Printf("Found possible email for fetching: %+v\n", msg)
+		logger.Debug("Found possible email for fetching: %+v\n", msg)
 		return true
 	}
 	return false
@@ -140,12 +140,12 @@ func (saver *checkoutEmails) needsProcessing(msg *imap.Message) bool {
 func (saver *checkoutEmails) uidProcessedBefore(uid uint32) bool {
 	data, err := saver.dao.FindByUid(uid)
 	if err != nil {
-		log.Printf("Error during retrieving UID %v, error: %v\n", uid, err)
+		logger.Error("Error during retrieving UID %v, error: %v\n", uid, err)
 		// Returning true to stop general processing
 		return true
 	}
 	if data != nil {
-		log.Println("Found UID processed before:", uid)
+		logger.Debug("Found UID processed before:", uid)
 		return true
 	}
 	return false
@@ -154,7 +154,7 @@ func (saver *checkoutEmails) uidProcessedBefore(uid uint32) bool {
 func (saver *checkoutEmails) processUids(uids []uint32) {
 	messagesChannel, err := saver.imapClient.GetMessageBodyChannel(inboxName, uids)
 	if err != nil {
-		log.Println("Error during retrieving channel for fetching email content:", err)
+		logger.Error("Error during retrieving channel for fetching email content:", err)
 		return
 	}
 	metError := false
@@ -162,43 +162,43 @@ func (saver *checkoutEmails) processUids(uids []uint32) {
 	for msg := range messagesChannel {
 		if !metError {
 			if err := saver.processEmail(msg); err != nil {
-				log.Printf("Met error during email processing, so skiping further processing")
+				logger.Error("Met error during email processing, so skiping further processing")
 				metError = true
 			} else {
 				count++
 			}
 			if count%100 == 0 {
-				log.Println("Saved emails count: ", count)
+				logger.Debug("Saved emails count: ", count)
 			}
 		}
 	}
-	log.Printf("Finally processed %v emails at: %v\n", count, time.Now())
+	logger.Debug("Finally processed %v emails at: %v\n", count, time.Now())
 }
 
 func (saver *checkoutEmails) processEmail(msg *imap.Message) error {
 	section := &imap.BodySectionName{}
 	r := msg.GetBody(section)
 	if r == nil {
-		log.Printf("Server didn't returned message body: %+v\n", msg)
+		logger.Warning("Server didn't returned message body: %+v\n", msg)
 		return nil
 	}
 	// Create a new mail reader
 	mr, err := mail.CreateReader(r)
 	if err != nil {
-		log.Printf("Cant create email reader for: %+v, due to %v\n", msg, err)
+		logger.Error("Cant create email reader for: %+v, due to %v\n", msg, err)
 		return err
 	}
 	mailToSave, ok := saver.emailReader.ReadEmail(mr, msg.Uid)
 	if ok {
-		log.Println("Saving email UID:", msg.Uid)
+		logger.Debug("Saving email UID:", msg.Uid)
 		err := saver.emailSaver.Save(&mailToSave)
 		if err != nil {
-			log.Println("Error saving attached file:", err)
+			logger.Error("Error saving attached file:", err)
 			return err
 		}
 		err = saver.dao.Save(mailToSave.EmailData)
 		if err != nil {
-			log.Println("Error saving email info:", err)
+			logger.Error("Error saving email info:", err)
 			return err
 		}
 	}
@@ -211,11 +211,11 @@ func (saver *checkoutEmails) PrintMailboxes() error {
 	defer saver.postProcess()
 	boxinfos, err := saver.imapClient.Mailboxes()
 	if err != nil {
-		log.Println("Loading mail boxes error:", err)
+		logger.Debug("Loading mail boxes error:", err)
 		return err
 	}
 	for info := range boxinfos {
-		log.Println(info)
+		logger.Debug("Box info:%v\n", info)
 	}
 	return nil
 }

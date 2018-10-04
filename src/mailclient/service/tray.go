@@ -2,7 +2,7 @@ package service
 
 import (
 	"io/ioutil"
-	"log"
+	"mailclient/logger"
 	"mailclient/util"
 
 	"github.com/getlantern/systray"
@@ -25,7 +25,7 @@ func onReady() {
 	systray.SetTitle("E-MFetcher")
 	systray.SetTooltip("E-MFetcher - сбор писем")
 	about := systray.AddMenuItem("О программе", "Информация о программе")
-	log := systray.AddMenuItem("Лог", "Открыть файл с логом")
+	logMenu := systray.AddMenuItem("Лог", "Открыть файл с логом")
 	open := systray.AddMenuItem("Браузер", "Доступ к поиску")
 	systray.AddSeparator()
 	mQuit := systray.AddMenuItem("Выход", "Закрыть приложение")
@@ -34,7 +34,7 @@ func onReady() {
 			select {
 			case <-open.ClickedCh:
 				util.OpenWindow("http://localhost:8080")
-			case <-log.ClickedCh:
+			case <-logMenu.ClickedCh:
 				util.OpenWindow("/log/mfetch.log")
 			case <-about.ClickedCh:
 				util.OpenWindow("about.txt")
@@ -47,14 +47,14 @@ func onReady() {
 }
 
 func onExit() {
-	log.Println("Closing tray")
+	logger.Info("Closing tray")
 	close <- 1
 }
 
 func getIcon(s string) []byte {
 	b, err := ioutil.ReadFile(s)
 	if err != nil {
-		log.Println("Error during loading tray icon:", err)
+		logger.Error("Error during loading tray icon:", err)
 	}
 	return b
 }

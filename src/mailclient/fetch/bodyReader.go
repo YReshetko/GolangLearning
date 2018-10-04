@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"mailclient/config"
 	"mailclient/domain"
+	"mailclient/logger"
 	"regexp"
 	"time"
 
@@ -74,7 +74,7 @@ func (emailReader *emailReader) ReadEmail(reader *mail.Reader, uid uint32) (doma
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			log.Println("Error reading next part of email:", err)
+			logger.Error("Error reading next part of email:", err)
 		}
 		switch h := p.Header.(type) {
 		case mail.TextHeader:
@@ -98,7 +98,7 @@ func (emailReader *emailReader) ReadEmail(reader *mail.Reader, uid uint32) (doma
 				var buffer bytes.Buffer
 				_, err := buffer.ReadFrom(p.Body)
 				if err != nil {
-					log.Printf("Error buffering attached file:%s; error:%v\n", filename, err)
+					logger.Error("Error buffering attached file:%s; error:%v\n", filename, err)
 				} else {
 					emailToSave.Buffer = &buffer
 					foundAttachedFile = true
@@ -122,7 +122,7 @@ func getDateByFileName(regExp *regexp.Regexp, filename string) time.Time {
 		seconds := addLeadingZerroz(slice[6], 2)
 		parsedTime, err := time.Parse(timeutil.ISO8601Z, fmt.Sprintf(dateTimePattern, year, month, day, hours, minutes, seconds))
 		if err != nil {
-			log.Printf("Error happened during file day-time parsing: %v; So, returning current time\n", err)
+			logger.Error("Error happened during file day-time parsing: %v; So, returning current time\n", err)
 			return time.Now()
 		}
 		return parsedTime
@@ -145,7 +145,7 @@ func extractField(regExp *regexp.Regexp, text string) string {
 	if len(arr) >= 1 && len(arr[0]) >= 2 {
 		return regExp.FindAllStringSubmatch(text, -1)[0][1]
 	} else {
-		log.Printf("Cant match pattern\n%v\nagainst text\n%s\n", regExp, text)
+		logger.Error("Cant match pattern\n%v\nagainst text\n%s\n", regExp, text)
 		return ""
 	}
 }

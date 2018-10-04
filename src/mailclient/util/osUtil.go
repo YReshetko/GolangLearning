@@ -1,7 +1,7 @@
 package util
 
 import (
-	"log"
+	"mailclient/logger"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -35,7 +35,7 @@ func IsRelativePath(path string) bool {
 func CreateAbsolutePath(relativePath string) string {
 	pathToRoot, err := filepath.Abs(".")
 	if err != nil {
-		log.Println("Error during retrieving absolute root path of application:", err)
+		logger.Error("Error during retrieving absolute root path of application:", err)
 		return relativePath
 	} else {
 		if string(relativePath[0]) != "/" {
@@ -76,7 +76,7 @@ type WindowsProcess struct {
 func FindPIDByName(name string) (int, error) {
 	procs, err := processes()
 	if err != nil {
-		log.Println("Error Win processes search:", err)
+		logger.Error("Error Win processes search:", err)
 		return 0, err
 	}
 	explorer := findProcessByName(procs, name)
