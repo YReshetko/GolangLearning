@@ -9,6 +9,7 @@ import (
 	"learning/hello"
 	"learning/img"
 	"learning/interf"
+	"learning/mape"
 	"learning/methods"
 	"learning/reader"
 	"learning/regulars"
@@ -26,10 +27,14 @@ func main() {
 	//errorPack()
 	//readerPack()
 	//readerImage()
-	gorutPack()
+	//gorutPack()
 	//synchPack()
 	//regularsPack()
 	//winProcPack()
+	mapPack()
+}
+func mapPack() {
+	mape.Experiment1()
 }
 func winProcPack() {
 	winProc.Experiment1()
