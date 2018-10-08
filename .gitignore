@@ -4,6 +4,7 @@ pkg/
 strange/
 src/github.com/
 src/golang.org/
+src/google.golang.org/
 **/debug
 **/*.exe
 **/*.log

@@ -17,7 +17,10 @@ func Process(task FjkTask) {
 		var wg sync.WaitGroup
 		log("Original task", task)
 		subTasks := task.Fork()
-		for _, subTask := range subTasks {
+		for index, subTask := range subTasks {
+			if index == 0 {
+				continue
+			}
 			log("Forked subtask", subTask)
 			wg.Add(1)
 			go func(tsk FjkTask) {
@@ -26,6 +29,7 @@ func Process(task FjkTask) {
 				log("Processed subtask", tsk)
 			}(subTask)
 		}
+		Process(subTasks[0])
 		wg.Wait()
 		task.Join(subTasks)
 		log("Joined subtask", task)
