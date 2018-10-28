@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package proto;
+
+import "google/protobuf/empty.proto";
+
+
+option go_package = "server/pb;pb";
+
+option java_multiple_files = true;
+option java_package = "com.controller.pb";
+option java_outer_classname = "MobileController";
+option objc_class_prefix = "MC";
+
+enum MouseStatus {
+    PRESS = 0;
+    CLICK = 1;
+    RELEASE = 2;
+}
+
+
+message Mouse {
+    MouseStatus right = 1;
+    MouseStatus left = 2;
+}
+
+message Move {
+    int32 deltaX = 1;
+    int32 deltaY = 2;
+}
+
+message Wheel {
+    int32 delta = 1;
+}
+
+message Key {
+    string key = 1;
+}
+
+message Special{
+    string command = 1;
+}
+
+service MobileController {
+    rpc MouseButton (Mouse) returns (google.protobuf.Empty) {}
+    rpc MouseMove (Move) returns (google.protobuf.Empty) {}
+    rpc MouseWheel (Wheel) returns (google.protobuf.Empty) {}
+    rpc KeyboardPress (Key) returns (google.protobuf.Empty) {}
+    rpc ExecuteCommand (Special) returns (google.protobuf.Empty) {}
+}
